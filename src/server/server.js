@@ -5,6 +5,7 @@ const socketIo = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 const axios = require('axios');
+const sqlite3 = require('sqlite3').verbose();
 
 const app = express();
 const server = http.createServer(app);
@@ -15,12 +16,45 @@ const io = socketIo(server, {
   }
 });
 
+// Initialize SQLite database
+const db = new sqlite3.Database('./queue.db', (err) => {
+  if (err) {
+    console.error('Error opening database:', err.message);
+  } else {
+    console.log('Connected to SQLite database');
+    // Create videos table if it doesn't exist
+    db.run(`CREATE TABLE IF NOT EXISTS videos (
+      id INTEGER PRIMARY KEY,
+      url TEXT NOT NULL,
+      videoId TEXT NOT NULL,
+      title TEXT,
+      duration TEXT
+    )`, (err) => {
+      if (err) {
+        console.error('Error creating table:', err.message);
+      } else {
+        console.log('Videos table ready');
+      }
+    });
+  }
+});
+
 app.use(cors());
 app.use(express.static(path.join(__dirname, '../../dist')));
 
 // Store video queue in memory
 let videoQueue = [];
 let currentVideo = null;
+
+// Load queue from database on startup
+db.all('SELECT * FROM videos ORDER BY id', (err, rows) => {
+  if (err) {
+    console.error('Error loading queue from database:', err.message);
+  } else {
+    videoQueue = rows;
+    console.log(`Loaded ${videoQueue.length} videos from database`);
+  }
+});
 
 // Serve the React app
 app.get('/', (req, res) => {
@@ -121,6 +155,18 @@ io.on('connection', (socket) => {
     console.log('Adding video to queue:', videoData);
     videoQueue.push(videoData);
     console.log('Updated queue:', videoQueue);
+    
+    // Save to database
+    const stmt = db.prepare('INSERT INTO videos (id, url, videoId, title, duration) VALUES (?, ?, ?, ?, ?)');
+    stmt.run(videoData.id, videoData.url, videoData.videoId, videoData.title, videoData.duration, (err) => {
+      if (err) {
+        console.error('Error saving video to database:', err.message);
+      } else {
+        console.log('Video saved to database');
+      }
+    });
+    stmt.finalize();
+    
     io.emit('queue_update', videoQueue);
   });
   
@@ -129,6 +175,18 @@ io.on('connection', (socket) => {
     console.log('Video finished, moving to next');
     if (videoQueue.length > 0) {
       currentVideo = videoQueue.shift();
+      
+      // Remove from database
+      const stmt = db.prepare('DELETE FROM videos WHERE id = ?');
+      stmt.run(currentVideo.id, (err) => {
+        if (err) {
+          console.error('Error deleting video from database:', err.message);
+        } else {
+          console.log('Video deleted from database');
+        }
+      });
+      stmt.finalize();
+      
       io.emit('queue_update', videoQueue);
       io.emit('play_video', currentVideo);
     } else {
@@ -141,6 +199,18 @@ io.on('connection', (socket) => {
   socket.on('play_next', () => {
     if (videoQueue.length > 0) {
       currentVideo = videoQueue.shift();
+      
+      // Remove from database
+      const stmt = db.prepare('DELETE FROM videos WHERE id = ?');
+      stmt.run(currentVideo.id, (err) => {
+        if (err) {
+          console.error('Error deleting video from database:', err.message);
+        } else {
+          console.log('Video deleted from database');
+        }
+      });
+      stmt.finalize();
+      
       io.emit('queue_update', videoQueue);
       io.emit('play_video', currentVideo);
     }
@@ -150,6 +220,18 @@ io.on('connection', (socket) => {
   socket.on('delete_video', (videoId) => {
     console.log('Deleting video from queue:', videoId);
     videoQueue = videoQueue.filter(video => video.id !== videoId);
+    
+    // Remove from database
+    const stmt = db.prepare('DELETE FROM videos WHERE id = ?');
+    stmt.run(videoId, (err) => {
+      if (err) {
+        console.error('Error deleting video from database:', err.message);
+      } else {
+        console.log('Video deleted from database');
+      }
+    });
+    stmt.finalize();
+    
     io.emit('queue_update', videoQueue);
   });
   
@@ -161,4 +243,17 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3004;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+});
+
+// Close database connection when server shuts down
+process.on('SIGINT', () => {
+  console.log('Closing database connection');
+  db.close((err) => {
+    if (err) {
+      console.error('Error closing database:', err.message);
+    } else {
+      console.log('Database connection closed');
+    }
+    process.exit(0);
+  });
 });
