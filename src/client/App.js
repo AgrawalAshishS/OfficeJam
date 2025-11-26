@@ -192,8 +192,8 @@ function App() {
             console.error('Error fetching video metadata:', error);
           }
           
-          // Update the ID to be unique
-          video.id = Date.now() + Math.random();
+          // Update the ID to be a unique integer
+          video.id = Date.now() + Math.floor(Math.random() * 1000);
           
           console.log('Sending video data to server:', video);
           socket.emit('add_video', video);
