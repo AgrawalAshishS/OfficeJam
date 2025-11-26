@@ -31,11 +31,6 @@ io.on('connection', (socket) => {
   // Send current queue to newly connected client
   socket.emit('queue_update', videoQueue);
   
-  // Send current playing video
-  if (currentVideo) {
-    socket.emit('video_playing', currentVideo);
-  }
-  
   // Handle adding video to queue
   socket.on('add_video', (videoData) => {
     console.log('Adding video to queue:', videoData);

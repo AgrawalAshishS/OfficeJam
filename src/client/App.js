@@ -35,18 +35,12 @@ function App() {
       setCurrentVideo(null);
     });
 
-    socket.on('video_playing', (video) => {
-      console.log('Video playing:', video);
-      setCurrentVideo(video);
-    });
-
     return () => {
       socket.off('connect');
       socket.off('disconnect');
       socket.off('queue_update');
       socket.off('play_video');
       socket.off('stop_video');
-      socket.off('video_playing');
     };
   }, []);
 
