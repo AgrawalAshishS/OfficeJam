@@ -144,12 +144,35 @@ app.get('/api/video/:videoId', async (req, res) => {
 
 // Endpoint to fetch played video history
 app.get('/api/history', (req, res) => {
-  db.all('SELECT * FROM played_videos ORDER BY playedAt DESC', (err, rows) => {
+  db.all('SELECT * FROM played_videos ORDER BY playedAt DESC LIMIT 300', (err, rows) => {
     if (err) {
       console.error('Error fetching history:', err.message);
       return res.status(500).json({ error: 'Failed to fetch history' });
     }
     res.json(rows);
+  });
+});
+
+// Endpoint to delete a video from history
+app.delete('/api/history/:id', (req, res) => {
+  const id = req.params.id;
+  
+  // Validate ID is a number
+  if (!id || isNaN(id)) {
+    return res.status(400).json({ error: 'Invalid video ID' });
+  }
+  
+  db.run('DELETE FROM played_videos WHERE id = ?', [id], function(err) {
+    if (err) {
+      console.error('Error deleting history record:', err.message);
+      return res.status(500).json({ error: 'Failed to delete history record' });
+    }
+    
+    if (this.changes === 0) {
+      return res.status(404).json({ error: 'History record not found' });
+    }
+    
+    res.json({ message: 'History record deleted successfully' });
   });
 });
 
@@ -332,6 +355,14 @@ io.on('connection', (socket) => {
             console.error('Error recording played video:', err.message);
           } else {
             console.log('Video recorded in history');
+            // Delete old records if more than 300
+            db.run('DELETE FROM played_videos WHERE id NOT IN (SELECT id FROM played_videos ORDER BY playedAt DESC LIMIT 300)', (err) => {
+              if (err) {
+                console.error('Error deleting old history records:', err.message);
+              } else {
+                console.log('Old history records deleted');
+              }
+            });
           }
         });
         historyStmt.finalize();
@@ -377,6 +408,14 @@ io.on('connection', (socket) => {
             console.error('Error recording played video:', err.message);
           } else {
             console.log('Video recorded in history');
+            // Delete old records if more than 300
+            db.run('DELETE FROM played_videos WHERE id NOT IN (SELECT id FROM played_videos ORDER BY playedAt DESC LIMIT 300)', (err) => {
+              if (err) {
+                console.error('Error deleting old history records:', err.message);
+              } else {
+                console.log('Old history records deleted');
+              }
+            });
           }
         });
         historyStmt.finalize();

@@ -298,7 +298,7 @@ function App() {
             onDeleteMultipleVideos={deleteMultipleVideos}
           />
         ) : (
-          <PlayHistory onAddToQueue={addVideo} />
+          <PlayHistory onAddToQueue={addVideo} currentQueue={videos} />
         )}
       </main>
     </div>
