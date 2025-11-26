@@ -161,6 +161,81 @@ function App() {
     }
     socket.emit('delete_video', videoId);
   };
+  
+  const addPlaylist = async (playlistUrl) => {
+    console.log('Attempting to add playlist URL:', playlistUrl);
+    
+    // Extract playlist ID from YouTube URL
+    const playlistId = extractPlaylistId(playlistUrl);
+    console.log('Extracted playlist ID:', playlistId);
+    if (!playlistId) {
+      alert('Invalid YouTube Playlist URL');
+      return;
+    }
+    
+    try {
+      const response = await fetch(`http://localhost:3004/api/playlist/${playlistId}`);
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Add each video to the queue
+        for (const video of data.videos) {
+          // Fetch individual video metadata
+          try {
+            const metadataResponse = await fetch(`http://localhost:3004/api/video/${video.videoId}`);
+            if (metadataResponse.ok) {
+              const metadata = await metadataResponse.json();
+              video.title = metadata.title;
+              video.duration = metadata.duration;
+            }
+          } catch (error) {
+            console.error('Error fetching video metadata:', error);
+          }
+          
+          // Update the ID to be unique
+          video.id = Date.now() + Math.random();
+          
+          console.log('Sending video data to server:', video);
+          socket.emit('add_video', video);
+          
+          // Add a small delay to prevent overwhelming the server
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        alert(`Added ${data.videos.length} videos to the queue`);
+      } else {
+        alert('Failed to fetch playlist');
+      }
+    } catch (error) {
+      console.error('Error fetching playlist:', error);
+      alert('Error adding playlist');
+    }
+  };
+  
+  const extractPlaylistId = (url) => {
+    try {
+      const urlObj = new URL(url);
+      
+      // Check if it's a YouTube domain
+      const validDomains = ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com'];
+      if (!validDomains.includes(urlObj.hostname)) {
+        return null;
+      }
+      
+      // For playlist URLs, must have playlist parameter
+      if (urlObj.searchParams.has('list')) {
+        const playlistId = urlObj.searchParams.get('list');
+        if (playlistId && playlistId.length > 5) {
+          return playlistId;
+        } 
+      }
+      
+      return null;
+    } catch (error) {
+      // Invalid URL format
+      return null;
+    }
+  };
 
   return (
     <div className="app">
@@ -196,7 +271,7 @@ function App() {
 
       <main>
         {activeTab === 'add' ? (
-          <VideoList videos={videos} onAddVideo={addVideo} onDeleteVideo={deleteVideo} />
+          <VideoList videos={videos} onAddVideo={addVideo} onDeleteVideo={deleteVideo} onAddPlaylist={addPlaylist} />
         ) : (
           <VideoPlayer 
             currentVideo={currentVideo} 

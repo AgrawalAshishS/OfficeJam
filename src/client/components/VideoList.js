@@ -1,13 +1,22 @@
 import React, { useState } from 'react';
 
-const VideoList = ({ videos, onAddVideo, onDeleteVideo }) => {
+const VideoList = ({ videos, onAddVideo, onDeleteVideo, onAddPlaylist }) => {
   const [videoUrl, setVideoUrl] = useState('');
+  const [playlistUrl, setPlaylistUrl] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (videoUrl.trim()) {
       onAddVideo(videoUrl);
       setVideoUrl('');
+    }
+  };
+  
+  const handlePlaylistSubmit = async (e) => {
+    e.preventDefault();
+    if (playlistUrl.trim()) {
+      await onAddPlaylist(playlistUrl);
+      setPlaylistUrl('');
     }
   };
 
@@ -24,6 +33,20 @@ const VideoList = ({ videos, onAddVideo, onDeleteVideo }) => {
         />
         <button type="submit" style={{ padding: '10px 20px', marginLeft: '10px' }}>
           Add to Queue
+        </button>
+      </form>
+      
+      <h3 style={{ marginTop: '20px' }}>Add YouTube Playlist to Queue</h3>
+      <form onSubmit={handlePlaylistSubmit}>
+        <input
+          type="text"
+          value={playlistUrl}
+          onChange={(e) => setPlaylistUrl(e.target.value)}
+          placeholder="Enter YouTube Playlist URL"
+          style={{ width: '70%', padding: '10px' }}
+        />
+        <button type="submit" style={{ padding: '10px 20px', marginLeft: '10px' }}>
+          Add Playlist
         </button>
       </form>
 

@@ -127,6 +127,55 @@ app.get('/api/video/:videoId', async (req, res) => {
   }
 });
 
+// Endpoint to fetch YouTube playlist items
+app.get('/api/playlist/:playlistId', async (req, res) => {
+  try {
+    const playlistId = req.params.playlistId;
+    
+    // Check if YouTube API key is configured
+    const youtubeApiKey = process.env.YOUTUBE_API_KEY;
+    if (!youtubeApiKey) {
+      return res.status(400).json({ error: 'YouTube API key not configured' });
+    }
+    
+    // Fetch playlist items from YouTube Data API
+    const maxResults = 50; // Maximum allowed per request
+    let allItems = [];
+    let nextPageToken = null;
+    
+    do {
+      let url = `https://www.googleapis.com/youtube/v3/playlistItems?playlistId=${playlistId}&key=${youtubeApiKey}&part=snippet,contentDetails&maxResults=${maxResults}`;
+      if (nextPageToken) {
+        url += `&pageToken=${nextPageToken}`;
+      }
+      
+      const response = await axios.get(url);
+      
+      if (response.data.items) {
+        allItems = allItems.concat(response.data.items);
+      }
+      
+      nextPageToken = response.data.nextPageToken;
+    } while (nextPageToken);
+    
+    // Transform the data to match our video format
+    const videos = allItems
+      .filter(item => item.snippet.resourceId.kind === 'youtube#video')
+      .map(item => ({
+        id: Date.now() + Math.random(), // Temporary ID, will be replaced by client
+        url: `https://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}`,
+        videoId: item.snippet.resourceId.videoId,
+        title: item.snippet.title,
+        duration: 'Unknown' // Will be fetched separately if needed
+      }));
+    
+    return res.json({ videos });
+  } catch (error) {
+    console.error('Error fetching playlist items:', error.message);
+    return res.status(500).json({ error: 'Failed to fetch playlist items' });
+  }
+});
+
 // Helper function to validate YouTube URLs
 function isValidYouTubeUrl(url) {
   try {
