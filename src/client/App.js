@@ -108,7 +108,7 @@ function App() {
   return (
     <div className="app">
       <header>
-        <h1>Shared YouTube Playlist Player</h1>
+        <h1>Shared YouTube Audio Playlist Player</h1>
         <div>
           <label>
             <input 

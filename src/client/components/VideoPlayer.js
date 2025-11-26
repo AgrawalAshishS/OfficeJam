@@ -17,13 +17,13 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext }) => {
 
   return (
     <div className="video-player">
-      <h2>Now Playing</h2>
+      <h2>Now Playing (Audio Only)</h2>
       {currentVideo ? (
         <div>
-          <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
+          <div style={{ position: 'relative', paddingBottom: '10%', height: 0 }}>
             <iframe
               ref={playerRef}
-              src={`https://www.youtube.com/embed/${currentVideo.videoId}?autoplay=1`}
+              src={`https://www.youtube.com/embed/${currentVideo.videoId}?autoplay=1&audio=1`}
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
