@@ -30,6 +30,15 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext, onDelet
       setSelectedVideos([]);
     }
   };
+  
+  const selectAllVideos = () => {
+    const allVideoIds = queue.map(video => video.id);
+    setSelectedVideos(allVideoIds);
+  };
+  
+  const deselectAllVideos = () => {
+    setSelectedVideos([]);
+  };
 
   return (
     <div className="video-player">
@@ -75,22 +84,31 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext, onDelet
           <p>No videos in queue.</p>
         ) : (
           <>
-            {selectedVideos.length > 0 && (
-              <div style={{ marginBottom: '10px' }}>
+            <div style={{ marginBottom: '10px' }}>
+              {selectedVideos.length > 0 ? (
+                <>
+                  <button 
+                    onClick={deleteSelectedVideos}
+                    style={{ padding: '5px 10px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                  >
+                    Delete Selected ({selectedVideos.length})
+                  </button>
+                  <button 
+                    onClick={deselectAllVideos}
+                    style={{ padding: '5px 10px', marginLeft: '10px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
                 <button 
-                  onClick={deleteSelectedVideos}
-                  style={{ padding: '5px 10px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                  onClick={selectAllVideos}
+                  style={{ padding: '5px 10px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                 >
-                  Delete Selected ({selectedVideos.length})
+                  Select All ({queue.length})
                 </button>
-                <button 
-                  onClick={() => setSelectedVideos([])}
-                  style={{ padding: '5px 10px', marginLeft: '10px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
+              )}
+            </div>
             <ul>
               {queue.map((video, index) => (
                 <li 
