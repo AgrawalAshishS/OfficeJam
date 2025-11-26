@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const PlayHistory = () => {
+const PlayHistory = ({ onAddToQueue }) => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -23,6 +23,11 @@ const PlayHistory = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAddToQueue = (video) => {
+    // Pass the URL string directly to the onAddToQueue function
+    onAddToQueue(video.url);
   };
 
   if (loading) return <div>Loading history...</div>;
@@ -70,6 +75,20 @@ const PlayHistory = () => {
                     Played at: {new Date(item.playedAt).toLocaleString()}
                   </p>
                 </div>
+                <button 
+                  onClick={() => handleAddToQueue(item)}
+                  style={{ 
+                    padding: '5px 10px', 
+                    backgroundColor: '#28a745', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: '4px', 
+                    cursor: 'pointer',
+                    marginLeft: '10px'
+                  }}
+                >
+                  Add to Queue
+                </button>
               </li>
             ))}
           </ul>
