@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 
-const VideoList = ({ videos, onAddVideo, onDeleteVideo, onAddPlaylist }) => {
+const VideoList = ({ videos, onAddVideo, onDeleteVideo, onAddPlaylist, onDeleteMultipleVideos }) => {
   const [videoUrl, setVideoUrl] = useState('');
   const [playlistUrl, setPlaylistUrl] = useState('');
+  const [selectedVideos, setSelectedVideos] = useState([]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -17,6 +18,21 @@ const VideoList = ({ videos, onAddVideo, onDeleteVideo, onAddPlaylist }) => {
     if (playlistUrl.trim()) {
       await onAddPlaylist(playlistUrl);
       setPlaylistUrl('');
+    }
+  };
+  
+  const toggleVideoSelection = (videoId) => {
+    if (selectedVideos.includes(videoId)) {
+      setSelectedVideos(selectedVideos.filter(id => id !== videoId));
+    } else {
+      setSelectedVideos([...selectedVideos, videoId]);
+    }
+  };
+  
+  const deleteSelectedVideos = () => {
+    if (selectedVideos.length > 0) {
+      onDeleteMultipleVideos(selectedVideos);
+      setSelectedVideos([]);
     }
   };
 
@@ -55,30 +71,72 @@ const VideoList = ({ videos, onAddVideo, onDeleteVideo, onAddPlaylist }) => {
         {videos.length === 0 ? (
           <p>No videos in queue. Add some videos to get started!</p>
         ) : (
-          <ul>
-            {videos.map((video, index) => (
-              <li key={video.id} style={{ margin: '10px 0', padding: '10px', border: '1px solid #ccc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <span style={{ fontWeight: 'bold' }}>#{index + 1}</span> - 
-                  <a 
-                    href={video.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    style={{ textDecoration: 'none', color: 'inherit' }}
-                  >
-                    {video.title || `Video (${video.videoId})`}
-                  </a>
-                  {video.duration && <span style={{ marginLeft: '10px', fontStyle: 'italic' }}>{video.duration}</span>}
-                </div>
+          <>
+            {selectedVideos.length > 0 && (
+              <div style={{ marginBottom: '10px' }}>
                 <button 
-                  onClick={() => onDeleteVideo(video.id)}
+                  onClick={deleteSelectedVideos}
                   style={{ padding: '5px 10px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                 >
-                  Delete
+                  Delete Selected ({selectedVideos.length})
                 </button>
-              </li>
-            ))}
-          </ul>
+                <button 
+                  onClick={() => setSelectedVideos([])}
+                  style={{ padding: '5px 10px', marginLeft: '10px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+            <ul>
+              {videos.map((video, index) => (
+                <li 
+                  key={video.id} 
+                  style={{ 
+                    margin: '10px 0', 
+                    padding: '10px', 
+                    border: selectedVideos.includes(video.id) ? '2px solid #007bff' : '1px solid #ccc', 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    backgroundColor: selectedVideos.includes(video.id) ? '#e3f2fd' : 'transparent'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedVideos.includes(video.id)}
+                      onChange={() => toggleVideoSelection(video.id)}
+                      style={{ marginRight: '10px' }}
+                    />
+                    <div onClick={(e) => {
+                      // Prevent click from affecting checkbox when clicking on the link
+                      if (e.target.tagName !== 'A') {
+                        toggleVideoSelection(video.id);
+                      }
+                    }} style={{ cursor: 'pointer', flexGrow: 1 }}>
+                      <span style={{ fontWeight: 'bold' }}>#{index + 1}</span> - 
+                      <a 
+                        href={video.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={{ textDecoration: 'none', color: 'inherit' }}
+                      >
+                        {video.title || `Video (${video.videoId})`}
+                      </a>
+                      {video.duration && <span style={{ marginLeft: '10px', fontStyle: 'italic' }}>{video.duration}</span>}
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => onDeleteVideo(video.id)}
+                    style={{ padding: '5px 10px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                  >
+                    Delete
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </div>
     </div>

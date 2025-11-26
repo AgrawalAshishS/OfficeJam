@@ -372,6 +372,33 @@ io.on('connection', (socket) => {
     io.emit('queue_update', videoQueue);
   });
   
+  // Handle multiple videos deletion from queue
+  socket.on('delete_multiple_videos', (videoIds) => {
+    // Validate videoIds is an array of numbers
+    if (!Array.isArray(videoIds) || videoIds.length === 0 || videoIds.some(id => typeof id !== 'number' || !Number.isInteger(id))) {
+      console.error('Invalid video IDs for deletion:', videoIds);
+      socket.emit('error', { message: 'Invalid video IDs' });
+      return;
+    }
+    
+    console.log('Deleting multiple videos from queue:', videoIds);
+    videoQueue = videoQueue.filter(video => !videoIds.includes(video.id));
+    
+    // Remove from database in a single transaction
+    const placeholders = videoIds.map(() => '?').join(',');
+    const stmt = db.prepare(`DELETE FROM videos WHERE id IN (${placeholders})`);
+    stmt.run(...videoIds, (err) => {
+      if (err) {
+        console.error('Error deleting videos from database:', err.message);
+      } else {
+        console.log(`${videoIds.length} videos deleted from database`);
+      }
+    });
+    stmt.finalize();
+    
+    io.emit('queue_update', videoQueue);
+  });
+  
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
   });

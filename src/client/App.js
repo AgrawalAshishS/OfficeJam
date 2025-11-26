@@ -162,6 +162,15 @@ function App() {
     socket.emit('delete_video', videoId);
   };
   
+  const deleteMultipleVideos = (videoIds) => {
+    // Validate videoIds are numbers
+    if (!Array.isArray(videoIds) || videoIds.some(id => typeof id !== 'number')) {
+      alert('Invalid video IDs');
+      return;
+    }
+    socket.emit('delete_multiple_videos', videoIds);
+  };
+  
   const addPlaylist = async (playlistUrl) => {
     console.log('Attempting to add playlist URL:', playlistUrl);
     
@@ -271,7 +280,7 @@ function App() {
 
       <main>
         {activeTab === 'add' ? (
-          <VideoList videos={videos} onAddVideo={addVideo} onDeleteVideo={deleteVideo} onAddPlaylist={addPlaylist} />
+          <VideoList videos={videos} onAddVideo={addVideo} onDeleteVideo={deleteVideo} onDeleteMultipleVideos={deleteMultipleVideos} onAddPlaylist={addPlaylist} />
         ) : (
           <VideoPlayer 
             currentVideo={currentVideo} 
@@ -279,6 +288,7 @@ function App() {
             onVideoFinished={() => socket.emit('video_finished')}
             onPlayNext={playNext}
             onDeleteVideo={deleteVideo}
+            onDeleteMultipleVideos={deleteMultipleVideos}
           />
         )}
       </main>
