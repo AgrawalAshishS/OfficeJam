@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import VideoList from './components/VideoList';
 import VideoPlayer from './components/VideoPlayer';
+import PlayHistory from './components/PlayHistory';
 import io from 'socket.io-client';
 
 const socket = io('http://localhost:3004');
@@ -8,7 +9,7 @@ const socket = io('http://localhost:3004');
 function App() {
   const [videos, setVideos] = useState([]);
   const [currentVideo, setCurrentVideo] = useState(null);
-  const [activeTab, setActiveTab] = useState('add'); // 'add' or 'play'
+  const [activeTab, setActiveTab] = useState('add'); // 'add', 'play', or 'history'
   const [isPlayer, setIsPlayer] = useState(false); // Whether this client is the central player
 
   useEffect(() => {
@@ -276,12 +277,18 @@ function App() {
         >
           Play Videos {isPlayer ? '' : '(Player Mode Required)'}
         </button>
+        <button 
+          className={activeTab === 'history' ? 'active' : ''}
+          onClick={() => setActiveTab('history')}
+        >
+          Play History
+        </button>
       </nav>
 
       <main>
         {activeTab === 'add' ? (
           <VideoList videos={videos} onAddVideo={addVideo} onDeleteVideo={deleteVideo} onDeleteMultipleVideos={deleteMultipleVideos} onAddPlaylist={addPlaylist} />
-        ) : (
+        ) : activeTab === 'play' ? (
           <VideoPlayer 
             currentVideo={currentVideo} 
             queue={videos}
@@ -290,6 +297,8 @@ function App() {
             onDeleteVideo={deleteVideo}
             onDeleteMultipleVideos={deleteMultipleVideos}
           />
+        ) : (
+          <PlayHistory />
         )}
       </main>
     </div>

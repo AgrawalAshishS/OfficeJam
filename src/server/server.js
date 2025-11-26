@@ -36,6 +36,21 @@ const db = new sqlite3.Database('./queue.db', (err) => {
         console.log('Videos table ready');
       }
     });
+    
+    // Create played videos history table if it doesn't exist
+    db.run(`CREATE TABLE IF NOT EXISTS played_videos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      videoId TEXT NOT NULL,
+      title TEXT,
+      url TEXT NOT NULL,
+      playedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`, (err) => {
+      if (err) {
+        console.error('Error creating played_videos table:', err.message);
+      } else {
+        console.log('Played videos table ready');
+      }
+    });
   }
 });
 
@@ -125,6 +140,17 @@ app.get('/api/video/:videoId', async (req, res) => {
       duration: 'Unknown'
     });
   }
+});
+
+// Endpoint to fetch played video history
+app.get('/api/history', (req, res) => {
+  db.all('SELECT * FROM played_videos ORDER BY playedAt DESC', (err, rows) => {
+    if (err) {
+      console.error('Error fetching history:', err.message);
+      return res.status(500).json({ error: 'Failed to fetch history' });
+    }
+    res.json(rows);
+  });
 });
 
 // Endpoint to fetch YouTube playlist items
@@ -298,6 +324,19 @@ io.on('connection', (socket) => {
         return;
       }
       
+      // Record played video in history
+      if (currentVideo) {
+        const historyStmt = db.prepare('INSERT INTO played_videos (videoId, title, url) VALUES (?, ?, ?)');
+        historyStmt.run(currentVideo.videoId, currentVideo.title, currentVideo.url, (err) => {
+          if (err) {
+            console.error('Error recording played video:', err.message);
+          } else {
+            console.log('Video recorded in history');
+          }
+        });
+        historyStmt.finalize();
+      }
+      
       // Remove from database
       const stmt = db.prepare('DELETE FROM videos WHERE id = ?');
       stmt.run(currentVideo.id, (err) => {
@@ -328,6 +367,19 @@ io.on('connection', (socket) => {
         currentVideo = null;
         io.emit('stop_video');
         return;
+      }
+      
+      // Record played video in history
+      if (currentVideo) {
+        const historyStmt = db.prepare('INSERT INTO played_videos (videoId, title, url) VALUES (?, ?, ?)');
+        historyStmt.run(currentVideo.videoId, currentVideo.title, currentVideo.url, (err) => {
+          if (err) {
+            console.error('Error recording played video:', err.message);
+          } else {
+            console.log('Video recorded in history');
+          }
+        });
+        historyStmt.finalize();
       }
       
       // Remove from database
