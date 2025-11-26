@@ -41,6 +41,11 @@ function App() {
         setCurrentVideo(null);
       }
     });
+    
+    socket.on('error', (error) => {
+      console.error('Server error:', error);
+      alert(`Error: ${error.message}`);
+    });
 
     return () => {
       socket.off('connect');
@@ -48,11 +53,19 @@ function App() {
       socket.off('queue_update');
       socket.off('play_video');
       socket.off('stop_video');
+      socket.off('error');
     };
   }, [isPlayer]);
 
   const addVideo = async (videoUrl) => {
     console.log('Attempting to add video URL:', videoUrl);
+    
+    // Client-side URL validation
+    if (!isValidYouTubeUrl(videoUrl)) {
+      alert('Invalid YouTube URL. Please enter a valid YouTube video URL.');
+      return;
+    }
+    
     // Extract video ID from YouTube URL
     const videoId = extractVideoId(videoUrl);
     console.log('Extracted video ID:', videoId);
@@ -87,6 +100,41 @@ function App() {
     console.log('Sending video data to server:', videoData);
     socket.emit('add_video', videoData);
   };
+  
+  // Client-side YouTube URL validation
+  const isValidYouTubeUrl = (url) => {
+    try {
+      const urlObj = new URL(url);
+      
+      // Check if it's a YouTube domain
+      const validDomains = ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtu.be'];
+      if (!validDomains.includes(urlObj.hostname)) {
+        return false;
+      }
+      
+      // For youtu.be short URLs
+      if (urlObj.hostname === 'youtu.be') {
+        return urlObj.pathname.length > 1; // Must have a video ID
+      }
+      
+      // For full YouTube URLs, must have watch path and v parameter
+      if (urlObj.pathname === '/watch' && urlObj.searchParams.has('v')) {
+        const videoId = urlObj.searchParams.get('v');
+        return videoId && videoId.length === 11; // YouTube video IDs are 11 characters
+      }
+      
+      // For embed URLs
+      if (urlObj.pathname.startsWith('/embed/')) {
+        const videoId = urlObj.pathname.split('/')[2];
+        return videoId && videoId.length === 11;
+      }
+      
+      return false;
+    } catch (error) {
+      // Invalid URL format
+      return false;
+    }
+  };
 
   const extractVideoId = (url) => {
     const regExp = /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]{11})(?:[\w&#\?\=]*)?$/;
@@ -106,6 +154,11 @@ function App() {
   };
   
   const deleteVideo = (videoId) => {
+    // Validate videoId is a number
+    if (typeof videoId !== 'number') {
+      alert('Invalid video ID');
+      return;
+    }
     socket.emit('delete_video', videoId);
   };
 

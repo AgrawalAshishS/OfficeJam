@@ -127,6 +127,61 @@ app.get('/api/video/:videoId', async (req, res) => {
   }
 });
 
+// Helper function to validate YouTube URLs
+function isValidYouTubeUrl(url) {
+  try {
+    const urlObj = new URL(url);
+    
+    // Check if it's a YouTube domain
+    const validDomains = ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtu.be'];
+    if (!validDomains.includes(urlObj.hostname)) {
+      return false;
+    }
+    
+    // For youtu.be short URLs
+    if (urlObj.hostname === 'youtu.be') {
+      return urlObj.pathname.length > 1; // Must have a video ID
+    }
+    
+    // For full YouTube URLs, must have watch path and v parameter
+    if (urlObj.pathname === '/watch' && urlObj.searchParams.has('v')) {
+      const videoId = urlObj.searchParams.get('v');
+      return videoId && videoId.length === 11; // YouTube video IDs are 11 characters
+    }
+    
+    // For embed URLs
+    if (urlObj.pathname.startsWith('/embed/')) {
+      const videoId = urlObj.pathname.split('/')[2];
+      return videoId && videoId.length === 11;
+    }
+    
+    return false;
+  } catch (error) {
+    // Invalid URL format
+    return false;
+  }
+}
+
+// Helper function to sanitize video data
+function sanitizeVideoData(videoData) {
+  // Remove any potentially dangerous properties
+  const sanitized = {};
+  
+  // Only allow specific properties
+  if (videoData.id) sanitized.id = videoData.id;
+  if (videoData.url) sanitized.url = videoData.url;
+  if (videoData.videoId) sanitized.videoId = videoData.videoId;
+  if (videoData.title) sanitized.title = videoData.title;
+  if (videoData.duration) sanitized.duration = videoData.duration;
+  
+  // Validate URL
+  if (sanitized.url && !isValidYouTubeUrl(sanitized.url)) {
+    throw new Error('Invalid YouTube URL');
+  }
+  
+  return sanitized;
+}
+
 // Helper function to parse ISO 8601 duration format
 function parseISO8601Duration(duration) {
   // Parse PT1H30M15S format
@@ -152,22 +207,32 @@ io.on('connection', (socket) => {
   
   // Handle adding video to queue
   socket.on('add_video', (videoData) => {
-    console.log('Adding video to queue:', videoData);
-    videoQueue.push(videoData);
-    console.log('Updated queue:', videoQueue);
-    
-    // Save to database
-    const stmt = db.prepare('INSERT INTO videos (id, url, videoId, title, duration) VALUES (?, ?, ?, ?, ?)');
-    stmt.run(videoData.id, videoData.url, videoData.videoId, videoData.title, videoData.duration, (err) => {
-      if (err) {
-        console.error('Error saving video to database:', err.message);
-      } else {
-        console.log('Video saved to database');
-      }
-    });
-    stmt.finalize();
-    
-    io.emit('queue_update', videoQueue);
+    try {
+      console.log('Adding video to queue:', videoData);
+      
+      // Sanitize and validate video data
+      const sanitizedData = sanitizeVideoData(videoData);
+      
+      videoQueue.push(sanitizedData);
+      console.log('Updated queue:', videoQueue);
+      
+      // Save to database
+      const stmt = db.prepare('INSERT INTO videos (id, url, videoId, title, duration) VALUES (?, ?, ?, ?, ?)');
+      stmt.run(sanitizedData.id, sanitizedData.url, sanitizedData.videoId, sanitizedData.title, sanitizedData.duration, (err) => {
+        if (err) {
+          console.error('Error saving video to database:', err.message);
+        } else {
+          console.log('Video saved to database');
+        }
+      });
+      stmt.finalize();
+      
+      io.emit('queue_update', videoQueue);
+    } catch (error) {
+      console.error('Error adding video to queue:', error.message);
+      // Optionally send error back to client
+      socket.emit('error', { message: 'Invalid video data' });
+    }
   });
   
   // Handle video finished event
@@ -175,6 +240,14 @@ io.on('connection', (socket) => {
     console.log('Video finished, moving to next');
     if (videoQueue.length > 0) {
       currentVideo = videoQueue.shift();
+      
+      // Validate currentVideo has valid ID
+      if (!currentVideo || typeof currentVideo.id !== 'number' || !Number.isInteger(currentVideo.id)) {
+        console.error('Invalid current video for deletion:', currentVideo);
+        currentVideo = null;
+        io.emit('stop_video');
+        return;
+      }
       
       // Remove from database
       const stmt = db.prepare('DELETE FROM videos WHERE id = ?');
@@ -200,6 +273,14 @@ io.on('connection', (socket) => {
     if (videoQueue.length > 0) {
       currentVideo = videoQueue.shift();
       
+      // Validate currentVideo has valid ID
+      if (!currentVideo || typeof currentVideo.id !== 'number' || !Number.isInteger(currentVideo.id)) {
+        console.error('Invalid current video for deletion:', currentVideo);
+        currentVideo = null;
+        io.emit('stop_video');
+        return;
+      }
+      
       // Remove from database
       const stmt = db.prepare('DELETE FROM videos WHERE id = ?');
       stmt.run(currentVideo.id, (err) => {
@@ -218,6 +299,13 @@ io.on('connection', (socket) => {
   
   // Handle video deletion from queue
   socket.on('delete_video', (videoId) => {
+    // Validate videoId is a number
+    if (typeof videoId !== 'number' || !Number.isInteger(videoId)) {
+      console.error('Invalid video ID for deletion:', videoId);
+      socket.emit('error', { message: 'Invalid video ID' });
+      return;
+    }
+    
     console.log('Deleting video from queue:', videoId);
     videoQueue = videoQueue.filter(video => video.id !== videoId);
     
