@@ -40,6 +40,7 @@ io.on('connection', (socket) => {
   socket.on('add_video', (videoData) => {
     console.log('Adding video to queue:', videoData);
     videoQueue.push(videoData);
+    console.log('Updated queue:', videoQueue);
     io.emit('queue_update', videoQueue);
   });
   

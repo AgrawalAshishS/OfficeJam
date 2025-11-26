@@ -3,7 +3,7 @@ import VideoList from './components/VideoList';
 import VideoPlayer from './components/VideoPlayer';
 import io from 'socket.io-client';
 
-const socket = io();
+const socket = io('http://localhost:3004');
 
 function App() {
   const [videos, setVideos] = useState([]);
@@ -11,24 +11,38 @@ function App() {
   const [activeTab, setActiveTab] = useState('add'); // 'add' or 'play'
 
   useEffect(() => {
+    socket.on('connect', () => {
+      console.log('Connected to server');
+    });
+    
+    socket.on('disconnect', () => {
+      console.log('Disconnected from server');
+    });
+    
     socket.on('queue_update', (queue) => {
+      console.log('Received queue update:', queue);
       setVideos(queue);
     });
 
     socket.on('play_video', (video) => {
+      console.log('Playing video:', video);
       setCurrentVideo(video);
       setActiveTab('play');
     });
 
     socket.on('stop_video', () => {
+      console.log('Stopping video');
       setCurrentVideo(null);
     });
 
     socket.on('video_playing', (video) => {
+      console.log('Video playing:', video);
       setCurrentVideo(video);
     });
 
     return () => {
+      socket.off('connect');
+      socket.off('disconnect');
       socket.off('queue_update');
       socket.off('play_video');
       socket.off('stop_video');
@@ -37,8 +51,10 @@ function App() {
   }, []);
 
   const addVideo = (videoUrl) => {
+    console.log('Attempting to add video URL:', videoUrl);
     // Extract video ID from YouTube URL
     const videoId = extractVideoId(videoUrl);
+    console.log('Extracted video ID:', videoId);
     if (!videoId) {
       alert('Invalid YouTube URL');
       return;
@@ -51,13 +67,21 @@ function App() {
       title: `Video ${videos.length + 1}` // In a real app, you'd fetch the actual title
     };
 
+    console.log('Sending video data to server:', videoData);
     socket.emit('add_video', videoData);
   };
 
   const extractVideoId = (url) => {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const regExp = /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]{11})(?:[\w&#\?\=]*)?$/;
     const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
+    if (match && match[1]) {
+      return match[1];
+    }
+    
+    // Fallback for other formats
+    const fallbackRegexp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const fallbackMatch = url.match(fallbackRegexp);
+    return (fallbackMatch && fallbackMatch[2].length === 11) ? fallbackMatch[2] : null;
   };
 
   const playNext = () => {
