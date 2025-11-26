@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+public/bundle.js
+public/bundle.js.map
+
+# Logs
+logs
+*.log
+
+# Environment files
+.env
+
+# IDE files
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
