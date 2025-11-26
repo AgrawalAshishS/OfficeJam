@@ -146,6 +146,13 @@ io.on('connection', (socket) => {
     }
   });
   
+  // Handle video deletion from queue
+  socket.on('delete_video', (videoId) => {
+    console.log('Deleting video from queue:', videoId);
+    videoQueue = videoQueue.filter(video => video.id !== videoId);
+    io.emit('queue_update', videoQueue);
+  });
+  
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
   });

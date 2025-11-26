@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 
-const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext }) => {
+const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext, onDeleteVideo }) => {
   const playerRef = useRef(null);
 
   // This is a simplified approach to detect when a YouTube video ends
@@ -60,11 +60,17 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext }) => {
         ) : (
           <ul>
             {queue.map((video, index) => (
-              <li key={video.id} style={{ margin: '10px 0', padding: '10px', border: '1px solid #ccc' }}>
+              <li key={video.id} style={{ margin: '10px 0', padding: '10px', border: '1px solid #ccc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <span style={{ fontWeight: 'bold' }}>#{index + 1}</span> - {video.title || `Video (${video.videoId})`}
-                  {video.duration && <span style={{ float: 'right', fontStyle: 'italic' }}>{video.duration}</span>}
+                  {video.duration && <span style={{ marginLeft: '10px', fontStyle: 'italic' }}>{video.duration}</span>}
                 </div>
+                <button 
+                  onClick={() => onDeleteVideo(video.id)}
+                  style={{ padding: '5px 10px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                >
+                  Delete
+                </button>
               </li>
             ))}
           </ul>

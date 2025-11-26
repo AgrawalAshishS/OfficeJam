@@ -104,6 +104,10 @@ function App() {
   const playNext = () => {
     socket.emit('play_next');
   };
+  
+  const deleteVideo = (videoId) => {
+    socket.emit('delete_video', videoId);
+  };
 
   return (
     <div className="app">
@@ -139,13 +143,14 @@ function App() {
 
       <main>
         {activeTab === 'add' ? (
-          <VideoList videos={videos} onAddVideo={addVideo} />
+          <VideoList videos={videos} onAddVideo={addVideo} onDeleteVideo={deleteVideo} />
         ) : (
           <VideoPlayer 
             currentVideo={currentVideo} 
             queue={videos}
             onVideoFinished={() => socket.emit('video_finished')}
             onPlayNext={playNext}
+            onDeleteVideo={deleteVideo}
           />
         )}
       </main>
