@@ -59,7 +59,15 @@ const VideoList = ({ videos, onAddVideo, onDeleteVideo, onAddPlaylist }) => {
             {videos.map((video, index) => (
               <li key={video.id} style={{ margin: '10px 0', padding: '10px', border: '1px solid #ccc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <span style={{ fontWeight: 'bold' }}>#{index + 1}</span> - {video.title || `Video (${video.videoId})`}
+                  <span style={{ fontWeight: 'bold' }}>#{index + 1}</span> - 
+                  <a 
+                    href={video.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    style={{ textDecoration: 'none', color: 'inherit' }}
+                  >
+                    {video.title || `Video (${video.videoId})`}
+                  </a>
                   {video.duration && <span style={{ marginLeft: '10px', fontStyle: 'italic' }}>{video.duration}</span>}
                 </div>
                 <button 
