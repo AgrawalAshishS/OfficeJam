@@ -9,6 +9,7 @@ function App() {
   const [videos, setVideos] = useState([]);
   const [currentVideo, setCurrentVideo] = useState(null);
   const [activeTab, setActiveTab] = useState('add'); // 'add' or 'play'
+  const [isPlayer, setIsPlayer] = useState(false); // Whether this client is the central player
 
   useEffect(() => {
     socket.on('connect', () => {
@@ -25,14 +26,20 @@ function App() {
     });
 
     socket.on('play_video', (video) => {
-      console.log('Playing video:', video);
-      setCurrentVideo(video);
-      setActiveTab('play');
+      // Only the designated player should play videos
+      if (isPlayer) {
+        console.log('Playing video:', video);
+        setCurrentVideo(video);
+        setActiveTab('play');
+      }
     });
 
     socket.on('stop_video', () => {
-      console.log('Stopping video');
-      setCurrentVideo(null);
+      // Only the designated player should stop videos
+      if (isPlayer) {
+        console.log('Stopping video');
+        setCurrentVideo(null);
+      }
     });
 
     return () => {
@@ -42,7 +49,7 @@ function App() {
       socket.off('play_video');
       socket.off('stop_video');
     };
-  }, []);
+  }, [isPlayer]);
 
   const addVideo = (videoUrl) => {
     console.log('Attempting to add video URL:', videoUrl);
@@ -86,6 +93,16 @@ function App() {
     <div className="app">
       <header>
         <h1>Shared YouTube Playlist Player</h1>
+        <div>
+          <label>
+            <input 
+              type="checkbox" 
+              checked={isPlayer}
+              onChange={(e) => setIsPlayer(e.target.checked)}
+            />
+            Enable Player Mode (Central Machine)
+          </label>
+        </div>
       </header>
       
       <nav>
@@ -98,8 +115,9 @@ function App() {
         <button 
           className={activeTab === 'play' ? 'active' : ''}
           onClick={() => setActiveTab('play')}
+          disabled={!isPlayer}
         >
-          Play Videos
+          Play Videos {isPlayer ? '' : '(Player Mode Required)'}
         </button>
       </nav>
 
