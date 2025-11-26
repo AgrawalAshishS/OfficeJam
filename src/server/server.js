@@ -3,6 +3,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
 const path = require('path');
+const axios = require('axios');
 
 const app = express();
 const server = http.createServer(app);
@@ -23,6 +24,22 @@ let currentVideo = null;
 // Serve the React app
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../../dist/index.html'));
+});
+
+// Endpoint to fetch YouTube video metadata
+app.get('/api/video/:videoId', async (req, res) => {
+  try {
+    const videoId = req.params.videoId;
+    // For demo purposes, we'll return mock data
+    // In a real application, you would use the YouTube Data API
+    res.json({
+      title: `YouTube Video ${videoId}`,
+      duration: '3:45' // Mock duration
+    });
+  } catch (error) {
+    console.error('Error fetching video metadata:', error);
+    res.status(500).json({ error: 'Failed to fetch video metadata' });
+  }
 });
 
 io.on('connection', (socket) => {

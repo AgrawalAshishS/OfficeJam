@@ -51,7 +51,7 @@ function App() {
     };
   }, [isPlayer]);
 
-  const addVideo = (videoUrl) => {
+  const addVideo = async (videoUrl) => {
     console.log('Attempting to add video URL:', videoUrl);
     // Extract video ID from YouTube URL
     const videoId = extractVideoId(videoUrl);
@@ -61,11 +61,27 @@ function App() {
       return;
     }
 
+    // Fetch video metadata
+    let title = `Video ${videos.length + 1}`;
+    let duration = 'Unknown';
+    
+    try {
+      const response = await fetch(`http://localhost:3004/api/video/${videoId}`);
+      if (response.ok) {
+        const metadata = await response.json();
+        title = metadata.title;
+        duration = metadata.duration;
+      }
+    } catch (error) {
+      console.error('Error fetching video metadata:', error);
+    }
+
     const videoData = {
       id: Date.now(), // Simple unique ID
       url: videoUrl,
       videoId: videoId,
-      title: `Video ${videos.length + 1}` // In a real app, you'd fetch the actual title
+      title: title,
+      duration: duration
     };
 
     console.log('Sending video data to server:', videoData);

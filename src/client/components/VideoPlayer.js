@@ -31,7 +31,8 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext }) => {
               title={currentVideo.title}
             ></iframe>
           </div>
-          <h3>{currentVideo.title || `Video (${currentVideo.videoId})`}</h3>
+          <h3>{currentVideo.title || `Video (${currentVideo.videoId})`}
+          {currentVideo.duration && <p>Duration: {currentVideo.duration}</p>}</h3>
         </div>
       ) : (
         <div>
@@ -52,7 +53,10 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext }) => {
           <ul>
             {queue.map((video, index) => (
               <li key={video.id} style={{ margin: '10px 0', padding: '10px', border: '1px solid #ccc' }}>
-                <span style={{ fontWeight: 'bold' }}>#{index + 1}</span> - {video.title || `Video (${video.videoId})`}
+                <div>
+                  <span style={{ fontWeight: 'bold' }}>#{index + 1}</span> - {video.title || `Video (${video.videoId})`}
+                  {video.duration && <span style={{ float: 'right', fontStyle: 'italic' }}>{video.duration}</span>}
+                </div>
               </li>
             ))}
           </ul>
