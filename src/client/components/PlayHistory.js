@@ -2,13 +2,29 @@ import React, { useState, useEffect } from 'react';
 
 const PlayHistory = ({ onAddToQueue, currentQueue }) => {
   const [history, setHistory] = useState([]);
+  const [filteredHistory, setFilteredHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState(null); // For displaying messages
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchHistory();
   }, []);
+
+  useEffect(() => {
+    // Filter history based on search term
+    if (searchTerm.trim() === '') {
+      setFilteredHistory(history);
+    } else {
+      const term = searchTerm.toLowerCase();
+      const filtered = history.filter(item => 
+        (item.title && item.title.toLowerCase().includes(term)) ||
+        (item.url && item.url.toLowerCase().includes(term))
+      );
+      setFilteredHistory(filtered);
+    }
+  }, [searchTerm, history]);
 
   const fetchHistory = async () => {
     try {
@@ -19,6 +35,7 @@ const PlayHistory = ({ onAddToQueue, currentQueue }) => {
       }
       const data = await response.json();
       setHistory(data);
+      setFilteredHistory(data); // Initialize filtered history with all items
     } catch (err) {
       setError(err.message);
     } finally {
@@ -48,7 +65,8 @@ const PlayHistory = ({ onAddToQueue, currentQueue }) => {
       }
       
       // Remove the video from the local state
-      setHistory(history.filter(item => item.id !== videoId));
+      const updatedHistory = history.filter(item => item.id !== videoId);
+      setHistory(updatedHistory);
       
       // Show success message
       setMessage(`"${videoTitle || videoId}" deleted from history!`);
@@ -72,6 +90,24 @@ const PlayHistory = ({ onAddToQueue, currentQueue }) => {
   return (
     <div className="play-history">
       <h2>Play History</h2>
+      
+      {/* Search input */}
+      <div style={{ marginBottom: '15px' }}>
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Filter by title or URL..."
+          style={{
+            width: '100%',
+            padding: '8px',
+            fontSize: '14px',
+            border: '1px solid #ccc',
+            borderRadius: '4px'
+          }}
+        />
+      </div>
+      
       {message && (
         <div style={{ 
           padding: '10px', 
@@ -84,13 +120,13 @@ const PlayHistory = ({ onAddToQueue, currentQueue }) => {
           {message}
         </div>
       )}
-      {history.length === 0 ? (
-        <p>No videos have been played yet.</p>
+      {filteredHistory.length === 0 ? (
+        <p>{searchTerm.trim() === '' ? 'No videos have been played yet.' : 'No matching videos found.'}</p>
       ) : (
         <div>
-          <p>Total videos played: {history.length}</p>
+          <p>Total videos played: {filteredHistory.length} {searchTerm.trim() !== '' && `(filtered from ${history.length})`}</p>
           <ul>
-            {history.map((item) => (
+            {filteredHistory.map((item) => (
               <li 
                 key={item.id} 
                 style={{ 

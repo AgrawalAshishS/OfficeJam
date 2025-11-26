@@ -4,6 +4,13 @@ const VideoList = ({ videos, onAddVideo, onDeleteVideo, onAddPlaylist, onDeleteM
   const [videoUrl, setVideoUrl] = useState('');
   const [playlistUrl, setPlaylistUrl] = useState('');
   const [selectedVideos, setSelectedVideos] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Filter videos based on search term
+  const filteredVideos = videos.filter(video => 
+    (video.title && video.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (video.url && video.url.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -37,7 +44,7 @@ const VideoList = ({ videos, onAddVideo, onDeleteVideo, onAddPlaylist, onDeleteM
   };
   
   const selectAllVideos = () => {
-    const allVideoIds = videos.map(video => video.id);
+    const allVideoIds = filteredVideos.map(video => video.id);
     setSelectedVideos(allVideoIds);
   };
   
@@ -76,9 +83,27 @@ const VideoList = ({ videos, onAddVideo, onDeleteVideo, onAddPlaylist, onDeleteM
       </form>
 
       <div className="queue-section">
-        <h3>Current Queue ({videos.length} videos)</h3>
-        {videos.length === 0 ? (
-          <p>No videos in queue. Add some videos to get started!</p>
+        <h3>Current Queue ({filteredVideos.length} videos)</h3>
+        
+        {/* Search input for queue */}
+        <div style={{ marginBottom: '15px' }}>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Filter by title or URL..."
+            style={{
+              width: '100%',
+              padding: '8px',
+              fontSize: '14px',
+              border: '1px solid #ccc',
+              borderRadius: '4px'
+            }}
+          />
+        </div>
+        
+        {filteredVideos.length === 0 ? (
+          <p>{searchTerm.trim() === '' ? 'No videos in queue. Add some videos to get started!' : 'No matching videos found.'}</p>
         ) : (
           <>
             <div style={{ marginBottom: '10px' }}>
@@ -102,12 +127,12 @@ const VideoList = ({ videos, onAddVideo, onDeleteVideo, onAddPlaylist, onDeleteM
                   onClick={selectAllVideos}
                   style={{ padding: '5px 10px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                 >
-                  Select All ({videos.length})
+                  Select All ({filteredVideos.length})
                 </button>
               )}
             </div>
             <ul>
-              {videos.map((video, index) => (
+              {filteredVideos.map((video) => (
                 <li 
                   key={video.id} 
                   style={{ 
@@ -120,20 +145,14 @@ const VideoList = ({ videos, onAddVideo, onDeleteVideo, onAddPlaylist, onDeleteM
                     backgroundColor: selectedVideos.includes(video.id) ? '#e3f2fd' : 'transparent'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
                     <input
                       type="checkbox"
                       checked={selectedVideos.includes(video.id)}
                       onChange={() => toggleVideoSelection(video.id)}
                       style={{ marginRight: '10px' }}
                     />
-                    <div onClick={(e) => {
-                      // Prevent click from affecting checkbox when clicking on the link
-                      if (e.target.tagName !== 'A') {
-                        toggleVideoSelection(video.id);
-                      }
-                    }} style={{ cursor: 'pointer', flexGrow: 1 }}>
-                      <span style={{ fontWeight: 'bold' }}>#{index + 1}</span> - 
+                    <div>
                       <a 
                         href={video.url} 
                         target="_blank" 
