@@ -33,14 +33,22 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext }) => {
           </div>
           <h3>{currentVideo.title || `Video (${currentVideo.videoId})`}
           {currentVideo.duration && <p>Duration: {currentVideo.duration}</p>}</h3>
+          <button onClick={onVideoFinished} style={{ padding: '8px 16px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', marginLeft: '10px' }}>
+            Skip Video
+          </button>
         </div>
       ) : (
         <div>
           <p>No video currently playing.</p>
           {queue.length > 0 && (
-            <button onClick={onPlayNext} style={{ padding: '10px 20px' }}>
-              Play Next Video
-            </button>
+            <div>
+              <button onClick={onPlayNext} style={{ padding: '10px 20px', marginRight: '10px' }}>
+                Play Next Video
+              </button>
+              <button onClick={onVideoFinished} style={{ padding: '10px 20px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                Skip Current
+              </button>
+            </div>
           )}
         </div>
       )}
