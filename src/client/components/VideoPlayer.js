@@ -45,6 +45,12 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext, onDelet
     
     playerInstance.current = new window.YT.Player(playerRef.current, {
       videoId: currentVideo.videoId,
+      playerVars: {
+        autoplay: 1, // Enable autoplay
+        controls: 1, // Show controls
+        modestbranding: 1, // Minimal YouTube branding
+        rel: 0 // Don't show related videos at the end
+      },
       events: {
         'onStateChange': onPlayerStateChange,
         'onError': onPlayerError
