@@ -4,6 +4,7 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext, onDelet
   const playerRef = useRef(null);
   const [selectedVideos, setSelectedVideos] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const playerInstance = useRef(null);
 
   // Filter queue based on search term
   const filteredQueue = queue.filter(video => 
@@ -11,17 +12,65 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext, onDelet
     (video.url && video.url.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  // This is a simplified approach to detect when a YouTube video ends
-  // In a production app, you would use the YouTube Player API for more accurate detection
+  // Initialize YouTube Player API
   useEffect(() => {
     if (currentVideo) {
-      const timer = setTimeout(() => {
-        onVideoFinished();
-      }, 30000); // Assume 30 seconds for demo purposes
-      
-      return () => clearTimeout(timer);
+      // Load YouTube Player API if not already loaded
+      if (!window.YT) {
+        const script = document.createElement('script');
+        script.src = 'https://www.youtube.com/iframe_api';
+        document.body.appendChild(script);
+        
+        window.onYouTubeIframeAPIReady = () => {
+          createPlayer();
+        };
+      } else {
+        createPlayer();
+      }
     }
-  }, [currentVideo, onVideoFinished]);
+    
+    return () => {
+      // Clean up player instance
+      if (playerInstance.current) {
+        playerInstance.current.destroy();
+        playerInstance.current = null;
+      }
+    };
+  }, [currentVideo]);
+
+  const createPlayer = () => {
+    if (playerInstance.current) {
+      playerInstance.current.destroy();
+    }
+    
+    playerInstance.current = new window.YT.Player(playerRef.current, {
+      videoId: currentVideo.videoId,
+      events: {
+        'onStateChange': onPlayerStateChange,
+        'onError': onPlayerError
+      }
+    });
+  };
+
+  const onPlayerStateChange = (event) => {
+    // YouTube Player States:
+    // -1 = unstarted
+    // 0 = ended
+    // 1 = playing
+    // 2 = paused
+    // 3 = buffering
+    // 5 = video cued
+    
+    if (event.data === 0) { // Video ended
+      onVideoFinished();
+    }
+  };
+
+  const onPlayerError = (event) => {
+    console.error('YouTube Player Error:', event.data);
+    // Still call onVideoFinished to move to next video even if there's an error
+    onVideoFinished();
+  };
 
   const toggleVideoSelection = (videoId) => {
     if (selectedVideos.includes(videoId)) {
@@ -56,13 +105,8 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext, onDelet
         paddingBottom: '56.25%' // 16:9 aspect ratio
       }}>
         {currentVideo ? (
-          <iframe
+          <div
             ref={playerRef}
-            src={`https://www.youtube.com/embed/${currentVideo.videoId}?autoplay=1`}
-            title="YouTube video player"
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
             style={{
               position: 'absolute',
               top: 0,
@@ -70,7 +114,7 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext, onDelet
               width: '100%',
               height: '100%'
             }}
-          ></iframe>
+          ></div>
         ) : (
           <div style={{
             position: 'absolute',
