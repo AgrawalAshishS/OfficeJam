@@ -9,6 +9,11 @@ const sqlite3 = require('sqlite3').verbose();
 
 const app = express();
 const server = http.createServer(app);
+
+// Get ports from environment variables or use defaults
+const SERVER_PORT = process.env.SERVER_PORT || 3004;
+const CLIENT_PORT = process.env.CLIENT_PORT || 3003;
+
 const io = socketIo(server, {
   cors: {
     origin: "*",
@@ -495,9 +500,9 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 3004;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+server.listen(SERVER_PORT, () => {
+  console.log(`Server running on port ${SERVER_PORT}`);
+  console.log(`Client application available at http://localhost:${CLIENT_PORT}`);
 });
 
 // Close database connection when server shuts down

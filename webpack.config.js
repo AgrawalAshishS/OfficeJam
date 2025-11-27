@@ -36,7 +36,7 @@ module.exports = {
       directory: path.join(__dirname, 'dist')
     },
     compress: true,
-    port: 3003
+    port: process.env.CLIENT_PORT || 3003
   },
   resolve: {
     extensions: ['.js', '.jsx']

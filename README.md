@@ -64,8 +64,8 @@ npm run dev
 ```
 
 This will start:
-- Server on port 3000
-- Client development server on port 3001
+- Server on port 3004 (can be customized with SERVER_PORT environment variable)
+- Client development server on port 3003 (can be customized with CLIENT_PORT environment variable)
 
 #### Production Mode
 
@@ -79,7 +79,7 @@ This will start:
    npm start
    ```
 
-The application will be available at http://localhost:3003
+The application will be available at http://localhost:3003 (or the port specified by CLIENT_PORT)
 
 ## Usage
 
@@ -88,6 +88,21 @@ The application will be available at http://localhost:3003
 3. On any device, paste YouTube URLs into the input field and click "Add to Queue"
 4. On the central machine, click "Play Videos" tab to view the player
 5. Videos will automatically play one after another from the queue
+
+## Environment Variables
+
+You can customize the application behavior using environment variables:
+
+- `SERVER_PORT`: Port for the backend server (default: 3004)
+- `CLIENT_PORT`: Port for the client development server (default: 3003)
+- `YOUTUBE_API_KEY`: YouTube Data API key for enhanced metadata (optional)
+
+Create a `.env` file in the project root to set these variables:
+```
+SERVER_PORT=3004
+CLIENT_PORT=3003
+YOUTUBE_API_KEY=your_youtube_api_key_here
+```
 
 ## How It Works
 

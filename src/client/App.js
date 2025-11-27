@@ -4,7 +4,8 @@ import VideoPlayer from './components/VideoPlayer';
 import PlayHistory from './components/PlayHistory';
 import io from 'socket.io-client';
 
-const socket = io('http://localhost:3004');
+// Use relative paths for API calls and socket connection
+const socket = io();
 
 function App() {
   const [videos, setVideos] = useState([]);
@@ -80,7 +81,7 @@ function App() {
     let duration = 'Unknown';
     
     try {
-      const response = await fetch(`http://localhost:3004/api/video/${videoId}`);
+      const response = await fetch(`/api/video/${videoId}`);
       if (response.ok) {
         const metadata = await response.json();
         title = metadata.title;
@@ -101,8 +102,12 @@ function App() {
     console.log('Sending video data to server:', videoData);
     socket.emit('add_video', videoData);
   };
-  
-  // Client-side YouTube URL validation
+
+  const videoFinished = () => {
+    socket.emit('video_finished');
+  };
+
+  // Helper function to validate YouTube URLs
   const isValidYouTubeUrl = (url) => {
     try {
       const urlObj = new URL(url);
@@ -137,6 +142,7 @@ function App() {
     }
   };
 
+  // Helper function to extract video ID from various YouTube URL formats
   const extractVideoId = (url) => {
     const regExp = /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]{11})(?:[\w&#\?\=]*)?$/;
     const match = url.match(regExp);
@@ -184,7 +190,7 @@ function App() {
     }
     
     try {
-      const response = await fetch(`http://localhost:3004/api/playlist/${playlistId}`);
+      const response = await fetch(`/api/playlist/${playlistId}`);
       if (response.ok) {
         const data = await response.json();
         
@@ -192,7 +198,7 @@ function App() {
         for (const video of data.videos) {
           // Fetch individual video metadata
           try {
-            const metadataResponse = await fetch(`http://localhost:3004/api/video/${video.videoId}`);
+            const metadataResponse = await fetch(`/api/video/${video.videoId}`);
             if (metadataResponse.ok) {
               const metadata = await metadataResponse.json();
               video.title = metadata.title;
@@ -221,7 +227,8 @@ function App() {
       alert('Error adding playlist');
     }
   };
-  
+
+  // Helper function to extract playlist ID from YouTube playlist URL
   const extractPlaylistId = (url) => {
     try {
       const urlObj = new URL(url);
@@ -232,12 +239,10 @@ function App() {
         return null;
       }
       
-      // For playlist URLs, must have playlist parameter
+      // Must have playlist parameter
       if (urlObj.searchParams.has('list')) {
         const playlistId = urlObj.searchParams.get('list');
-        if (playlistId && playlistId.length > 5) {
-          return playlistId;
-        } 
+        return playlistId && playlistId.length > 5; // Playlist IDs are typically longer
       }
       
       return null;
@@ -250,7 +255,7 @@ function App() {
   return (
     <div className="app">
       <header>
-        <h1>Shared YouTube Audio Playlist Player</h1>
+        <h1>OfficeJam</h1>
         <div>
           <label>
             <input 
@@ -287,18 +292,27 @@ function App() {
 
       <main>
         {activeTab === 'add' ? (
-          <VideoList videos={videos} onAddVideo={addVideo} onDeleteVideo={deleteVideo} onDeleteMultipleVideos={deleteMultipleVideos} onAddPlaylist={addPlaylist} />
+          <VideoList 
+            videos={videos}
+            onAddVideo={addVideo}
+            onDeleteVideo={deleteVideo}
+            onAddPlaylist={addPlaylist}
+            onDeleteMultipleVideos={deleteMultipleVideos}
+          />
         ) : activeTab === 'play' ? (
           <VideoPlayer 
-            currentVideo={currentVideo} 
+            currentVideo={currentVideo}
             queue={videos}
-            onVideoFinished={() => socket.emit('video_finished')}
+            onVideoFinished={videoFinished}
             onPlayNext={playNext}
             onDeleteVideo={deleteVideo}
             onDeleteMultipleVideos={deleteMultipleVideos}
           />
         ) : (
-          <PlayHistory onAddToQueue={addVideo} currentQueue={videos} />
+          <PlayHistory 
+            onAddToQueue={addVideo}
+            currentQueue={videos}
+          />
         )}
       </main>
     </div>

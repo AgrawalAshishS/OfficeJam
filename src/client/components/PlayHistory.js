@@ -29,7 +29,7 @@ const PlayHistory = ({ onAddToQueue, currentQueue }) => {
   const fetchHistory = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3004/api/history');
+      const response = await fetch('/api/history');
       if (!response.ok) {
         throw new Error('Failed to fetch history');
       }
@@ -56,7 +56,7 @@ const PlayHistory = ({ onAddToQueue, currentQueue }) => {
 
   const handleDeleteFromHistory = async (videoId, videoTitle) => {
     try {
-      const response = await fetch(`http://localhost:3004/api/history/${videoId}`, {
+      const response = await fetch(`/api/history/${videoId}`, {
         method: 'DELETE'
       });
       
