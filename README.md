@@ -1,4 +1,4 @@
-# Shared YouTube Playlist Player
+# OfficeJam - Shared YouTube Playlist Player
 
 A centralized music player web application that allows multiple users to add YouTube videos to a shared queue. The video player runs on a central machine while users from different locations can contribute to the playlist.
 
@@ -46,7 +46,7 @@ public/               # Static assets and built files
 
 2. Navigate to the project directory:
    ```bash
-   cd SharedYTListPlayer
+   cd OfficeJam
    ```
 
 3. Install dependencies:
@@ -79,7 +79,7 @@ This will start:
    npm start
    ```
 
-The application will be available at http://localhost:3000
+The application will be available at http://localhost:3003
 
 ## Usage
 
