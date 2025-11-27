@@ -138,27 +138,39 @@ const PlayHistory = ({ onAddToQueue, currentQueue }) => {
                   alignItems: 'center'
                 }}
               >
-                <div>
-                  <a 
-                    href={item.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    style={{ 
-                      textDecoration: 'none', 
-                      color: 'inherit',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    {item.title || `Video (${item.videoId})`}
-                  </a>
-                  <p style={{ 
-                    margin: '5px 0 0 0', 
-                    fontSize: '0.9em', 
-                    color: '#666' 
-                  }}>
-                    Played at: {new Date(item.playedAt).toLocaleString()}
-                  </p>
+                {/* Thumbnail and video info */}
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <div style={{ marginRight: '10px' }}>
+                    <img 
+                      src={`https://img.youtube.com/vi/${item.videoId}/default.jpg`} 
+                      alt={item.title || `Thumbnail for ${item.videoId}`}
+                      style={{ width: '120px', height: '90px', objectFit: 'cover', borderRadius: '4px' }}
+                    />
+                  </div>
+                  <div>
+                    <a 
+                      href={item.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      style={{ 
+                        textDecoration: 'none', 
+                        color: 'inherit',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      {item.title || `Video (${item.videoId})`}
+                    </a>
+                    <p style={{ 
+                      margin: '5px 0 0 0', 
+                      fontSize: '0.9em', 
+                      color: '#666' 
+                    }}>
+                      Played at: {new Date(item.playedAt).toLocaleString()}
+                    </p>
+                  </div>
                 </div>
+                
+                {/* Action buttons */}
                 <div>
                   {!isVideoInQueue(item.videoId) ? (
                     <button 

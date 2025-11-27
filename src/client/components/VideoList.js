@@ -152,6 +152,14 @@ const VideoList = ({ videos, onAddVideo, onDeleteVideo, onAddPlaylist, onDeleteM
                       onChange={() => toggleVideoSelection(video.id)}
                       style={{ marginRight: '10px' }}
                     />
+                    {/* Thumbnail */}
+                    <div style={{ marginRight: '10px' }}>
+                      <img 
+                        src={`https://img.youtube.com/vi/${video.videoId}/default.jpg`} 
+                        alt={video.title || `Thumbnail for ${video.videoId}`}
+                        style={{ width: '120px', height: '90px', objectFit: 'cover', borderRadius: '4px' }}
+                      />
+                    </div>
                     <div>
                       <a 
                         href={video.url} 

@@ -262,6 +262,14 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext, onDelet
                       onChange={() => toggleVideoSelection(video.id)}
                       style={{ marginRight: '10px' }}
                     />
+                    {/* Thumbnail */}
+                    <div style={{ marginRight: '10px' }}>
+                      <img 
+                        src={`https://img.youtube.com/vi/${video.videoId}/default.jpg`} 
+                        alt={video.title || `Thumbnail for ${video.videoId}`}
+                        style={{ width: '120px', height: '90px', objectFit: 'cover', borderRadius: '4px' }}
+                      />
+                    </div>
                     <div>
                       <span style={{ fontWeight: 'bold' }}>#{index + 1}</span> - 
                       <a 
