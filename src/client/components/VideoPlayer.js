@@ -49,11 +49,28 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext, onDelet
         autoplay: 1, // Enable autoplay
         controls: 1, // Show controls
         modestbranding: 1, // Minimal YouTube branding
-        rel: 0 // Don't show related videos at the end
+        rel: 0, // Don't show related videos at the end
+        iv_load_policy: 3, // Hide annotations
+        disablekb: 1, // Disable keyboard controls
+        fs: 0, // Disable fullscreen button
+        playsinline: 1, // Play inline on mobile
+        // Audio-only parameters
+        mute: 0, // Start unmuted
+        enablejsapi: 1, // Enable JS API
       },
       events: {
         'onStateChange': onPlayerStateChange,
         'onError': onPlayerError
+      }
+    });
+    
+    // Apply audio-only styling after player is ready
+    playerInstance.current.addEventListener('onReady', () => {
+      // Hide video elements and show audio-only interface
+      const iframe = playerRef.current.querySelector('iframe');
+      if (iframe) {
+        iframe.style.width = '100%';
+        iframe.style.height = '60px'; // Reduced height for audio player
       }
     });
   };
@@ -108,7 +125,7 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext, onDelet
         position: 'relative', 
         width: '100%', 
         height: '0', 
-        paddingBottom: '56.25%' // 16:9 aspect ratio
+        paddingBottom: '9%' // Reduced height for audio player (was 56.25% for video)
       }}>
         {currentVideo ? (
           <div
@@ -135,7 +152,7 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext, onDelet
             color: '#fff',
             fontSize: '1.2em'
           }}>
-            No video playing
+            No audio playing
           </div>
         )}
       </div>
@@ -161,14 +178,14 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext, onDelet
                   fontSize: '1.1em'
                 }}
               >
-                {currentVideo.title || `Video (${currentVideo.videoId})`}
+                {currentVideo.title || `Audio (${currentVideo.videoId})`}
               </a>
               {currentVideo.duration && <span style={{ marginLeft: '10px', fontStyle: 'italic' }}>{currentVideo.duration}</span>}
             </div>
             
             <div>
               <button onClick={onPlayNext} style={{ padding: '10px 20px', marginRight: '10px' }}>
-                Play Next Video
+                Play Next Audio
               </button>
               <button onClick={onVideoFinished} style={{ padding: '10px 20px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
                 Skip Current
@@ -177,11 +194,11 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext, onDelet
           </div>
         ) : (
           <div>
-            <p>No video currently playing.</p>
+            <p>No audio currently playing.</p>
             {queue.length > 0 && (
               <div>
                 <button onClick={onPlayNext} style={{ padding: '10px 20px', marginRight: '10px' }}>
-                  Play Next Video
+                  Play Next Audio
                 </button>
                 <button onClick={onVideoFinished} style={{ padding: '10px 20px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
                   Skip Current
@@ -193,7 +210,7 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext, onDelet
       </div>
       
       <div className="queue-section">
-        <h3>Up Next ({filteredQueue.length} videos)</h3>
+        <h3>Up Next ({filteredQueue.length} audios)</h3>
         
         {/* Search input for queue */}
         <div style={{ marginBottom: '15px' }}>
@@ -213,7 +230,7 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext, onDelet
         </div>
         
         {filteredQueue.length === 0 ? (
-          <p>{searchTerm.trim() === '' ? 'No videos in queue.' : 'No matching videos found.'}</p>
+          <p>{searchTerm.trim() === '' ? 'No audios in queue.' : 'No matching audios found.'}</p>
         ) : (
           <>
             <div style={{ marginBottom: '10px' }}>
@@ -278,7 +295,7 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext, onDelet
                         rel="noopener noreferrer"
                         style={{ textDecoration: 'none', color: 'inherit', marginLeft: '5px' }}
                       >
-                        {video.title || `Video (${video.videoId})`}
+                        {video.title || `Audio (${video.videoId})`}
                       </a>
                       {video.duration && <span style={{ marginLeft: '10px', fontStyle: 'italic' }}>{video.duration}</span>}
                     </div>
