@@ -3,8 +3,7 @@
     on:
       push:
         branches:
-          - feature/docker-setup # Or your desired branch
-
+          - feature/docker-setup
     jobs:
       deploy:
         runs-on: ubuntu-latest
