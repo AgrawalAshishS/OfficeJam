@@ -89,127 +89,90 @@ const PlayHistory = ({ onAddToQueue, currentQueue }) => {
 
   return (
     <div className="play-history">
-      <h2>Play History</h2>
+      <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+        <div>
+          <h2 className="section-title h5 mb-1">Play History</h2>
+          <p className="text-secondary small mb-0">Re-queue a favorite or clean up the log.</p>
+        </div>
+        <div className="text-secondary small">Total played: {history.length}</div>
+      </div>
       
-      {/* Search input */}
-      <div style={{ marginBottom: '15px' }}>
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Filter by title or URL..."
-          style={{
-            width: '100%',
-            padding: '8px',
-            fontSize: '14px',
-            border: '1px solid #ccc',
-            borderRadius: '4px'
-          }}
-        />
+      <div className="mb-3">
+        <div className="input-group">
+          <span className="input-group-text bg-white border-end-0">
+            <i className="bi bi-search text-secondary"></i>
+          </span>
+          <input
+            type="text"
+            className="form-control border-start-0"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Filter by title or URL..."
+          />
+        </div>
       </div>
       
       {message && (
-        <div style={{ 
-          padding: '10px', 
-          backgroundColor: '#d4edda', 
-          color: '#155724', 
-          border: '1px solid #c3e6cb', 
-          borderRadius: '4px', 
-          marginBottom: '15px' 
-        }}>
+        <div className="alert alert-success py-2" role="alert">
           {message}
         </div>
       )}
       {filteredHistory.length === 0 ? (
-        <p>{searchTerm.trim() === '' ? 'No videos have been played yet.' : 'No matching videos found.'}</p>
+        <div className="empty-state">
+          {searchTerm.trim() === '' ? 'No videos have been played yet.' : 'No matching videos found.'}
+        </div>
       ) : (
         <div>
-          <p>Total videos played: {filteredHistory.length} {searchTerm.trim() !== '' && `(filtered from ${history.length})`}</p>
-          <ul>
+          <p className="text-secondary small">
+            Showing {filteredHistory.length} {searchTerm.trim() !== '' && `(filtered from ${history.length})`}
+          </p>
+          <ul className="history-list d-grid gap-3">
             {filteredHistory.map((item) => (
               <li 
                 key={item.id} 
-                style={{ 
-                  margin: '10px 0', 
-                  padding: '10px', 
-                  border: '1px solid #ccc',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}
+                className="history-item bg-white d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3"
               >
                 {/* Thumbnail and video info */}
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <div style={{ marginRight: '10px' }}>
-                    <img 
-                      src={`https://img.youtube.com/vi/${item.videoId}/default.jpg`} 
-                      alt={item.title || `Thumbnail for ${item.videoId}`}
-                      style={{ width: '120px', height: '90px', objectFit: 'cover', borderRadius: '4px' }}
-                    />
-                  </div>
+                <div className="d-flex align-items-center gap-3">
+                  <img 
+                    src={`https://img.youtube.com/vi/${item.videoId}/default.jpg`} 
+                    alt={item.title || `Thumbnail for ${item.videoId}`}
+                    className="thumb"
+                  />
                   <div>
                     <a 
                       href={item.url} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      style={{ 
-                        textDecoration: 'none', 
-                        color: 'inherit',
-                        fontWeight: 'bold'
-                      }}
+                      className="fw-semibold text-decoration-none text-dark"
                     >
                       {item.title || `Video (${item.videoId})`}
                     </a>
-                    <p style={{ 
-                      margin: '5px 0 0 0', 
-                      fontSize: '0.9em', 
-                      color: '#666' 
-                    }}>
+                    <p className="mb-0 text-secondary small">
                       Played at: {new Date(item.playedAt).toLocaleString()}
                     </p>
                   </div>
                 </div>
                 
                 {/* Action buttons */}
-                <div>
+                <div className="d-flex flex-wrap gap-2">
                   {!isVideoInQueue(item.videoId) ? (
                     <button 
                       onClick={() => handleAddToQueue(item)}
-                      style={{ 
-                        padding: '5px 10px', 
-                        backgroundColor: '#28a745', 
-                        color: 'white', 
-                        border: 'none', 
-                        borderRadius: '4px', 
-                        cursor: 'pointer',
-                        marginRight: '5px'
-                      }}
+                      className="btn btn-success btn-sm"
+                      type="button"
                     >
-                      Add to Queue
+                      <i className="bi bi-plus-circle me-1"></i>Add to Queue
                     </button>
                   ) : (
-                    <span style={{ 
-                      padding: '5px 10px', 
-                      backgroundColor: '#6c757d', 
-                      color: 'white', 
-                      borderRadius: '4px', 
-                      marginRight: '5px'
-                    }}>
-                      Already in Queue
-                    </span>
+                    <span className="badge bg-secondary align-self-center">Already in Queue</span>
                   )}
                   <button 
                     onClick={() => handleDeleteFromHistory(item.id, item.title || item.videoId)}
-                    style={{ 
-                      padding: '5px 10px', 
-                      backgroundColor: '#dc3545', 
-                      color: 'white', 
-                      border: 'none', 
-                      borderRadius: '4px', 
-                      cursor: 'pointer'
-                    }}
+                    className="btn btn-outline-danger btn-sm"
+                    type="button"
                   >
-                    Delete
+                    <i className="bi bi-trash me-1"></i>Delete
                   </button>
                 </div>
               </li>

@@ -121,195 +121,170 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext, onDelet
 
   return (
     <div className="video-player">
-      <div style={{ 
-        position: 'relative', 
-        width: '100%', 
-        height: '0', 
-        paddingBottom: '9%' // Reduced height for audio player (was 56.25% for video)
-      }}>
+      <div className="position-relative w-100" style={{ height: 0, paddingBottom: '9%' }}>
         {currentVideo ? (
           <div
             ref={playerRef}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%'
-            }}
+            className="yt-iframe position-absolute top-0 start-0 w-100 h-100"
           ></div>
         ) : (
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: '#000',
-            color: '#fff',
-            fontSize: '1.2em'
-          }}>
+          <div className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark text-white fs-5 rounded-3">
             No audio playing
           </div>
         )}
       </div>
       
-      <div style={{ marginTop: '20px' }}>
+      <div className="mt-4">
         {currentVideo ? (
-          <div>
-            <h3>Now Playing</h3>
-            <div style={{ 
-              padding: '15px', 
-              border: '1px solid #ccc', 
-              borderRadius: '4px',
-              marginBottom: '15px'
-            }}>
-              <a 
-                href={currentVideo.url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                style={{ 
-                  textDecoration: 'none', 
-                  color: 'inherit',
-                  fontWeight: 'bold',
-                  fontSize: '1.1em'
-                }}
-              >
-                {currentVideo.title || `Audio (${currentVideo.videoId})`}
-              </a>
-              {currentVideo.duration && <span style={{ marginLeft: '10px', fontStyle: 'italic' }}>{currentVideo.duration}</span>}
-            </div>
-            
-            <div>
-              <button onClick={onPlayNext} style={{ padding: '10px 20px', marginRight: '10px' }}>
-                Play Next Audio
-              </button>
-              <button onClick={onVideoFinished} style={{ padding: '10px 20px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-                Skip Current
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div>
-            <p>No audio currently playing.</p>
-            {queue.length > 0 && (
+          <div className="card glass-panel border-0 shadow-sm">
+            <div className="card-body d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
               <div>
-                <button onClick={onPlayNext} style={{ padding: '10px 20px', marginRight: '10px' }}>
-                  Play Next Audio
+                <h3 className="section-title h5 mb-2">Now Playing</h3>
+                <a 
+                  href={currentVideo.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="fw-semibold text-decoration-none text-dark"
+                >
+                  {currentVideo.title || `Audio (${currentVideo.videoId})`}
+                </a>
+                {currentVideo.duration && (
+                  <span className="badge bg-light text-secondary ms-2 pill">{currentVideo.duration}</span>
+                )}
+              </div>
+              <div className="d-flex flex-wrap gap-2">
+                <button onClick={onPlayNext} className="btn btn-primary">
+                  <i className="bi bi-skip-forward-fill me-1"></i>Play Next Audio
                 </button>
-                <button onClick={onVideoFinished} style={{ padding: '10px 20px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                <button onClick={onVideoFinished} className="btn btn-outline-danger">
                   Skip Current
                 </button>
               </div>
-            )}
+            </div>
+          </div>
+        ) : (
+          <div className="card glass-panel border-0 shadow-sm">
+            <div className="card-body d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+              <div>
+                <h3 className="section-title h5 mb-1">Nothing playing</h3>
+                <p className="text-secondary mb-0">Add a track or jump to the next in queue.</p>
+              </div>
+              {queue.length > 0 && (
+                <div className="d-flex flex-wrap gap-2">
+                  <button onClick={onPlayNext} className="btn btn-primary">
+                    Play Next Audio
+                  </button>
+                  <button onClick={onVideoFinished} className="btn btn-outline-danger">
+                    Skip Current
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
       
-      <div className="queue-section">
-        <h3>Up Next ({filteredQueue.length} audios)</h3>
-        
-        {/* Search input for queue */}
-        <div style={{ marginBottom: '15px' }}>
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Filter by title or URL..."
-            style={{
-              width: '100%',
-              padding: '8px',
-              fontSize: '14px',
-              border: '1px solid #ccc',
-              borderRadius: '4px'
-            }}
-          />
+      <div className="queue-section mt-4">
+        <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+          <div>
+            <h3 className="section-title h5 mb-1">Up Next ({filteredQueue.length} audios)</h3>
+            <p className="text-secondary small mb-0">Filter, select, and manage the queue.</p>
+          </div>
+          <div className="d-flex flex-wrap gap-2">
+            {selectedVideos.length > 0 ? (
+              <>
+                <button 
+                  onClick={deleteSelectedVideos}
+                  className="btn btn-danger btn-sm"
+                  type="button"
+                >
+                  <i className="bi bi-trash me-1"></i>Delete Selected ({selectedVideos.length})
+                </button>
+                <button 
+                  onClick={deselectAllVideos}
+                  className="btn btn-outline-secondary btn-sm"
+                  type="button"
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <button 
+                onClick={selectAllVideos}
+                className="btn btn-outline-primary btn-sm"
+                type="button"
+              >
+                Select All ({filteredQueue.length})
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="mb-3">
+          <div className="input-group">
+            <span className="input-group-text bg-white border-end-0">
+              <i className="bi bi-search text-secondary"></i>
+            </span>
+            <input
+              type="text"
+              className="form-control border-start-0"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Filter by title or URL..."
+            />
+          </div>
         </div>
         
         {filteredQueue.length === 0 ? (
-          <p>{searchTerm.trim() === '' ? 'No audios in queue.' : 'No matching audios found.'}</p>
+          <div className="empty-state">
+            {searchTerm.trim() === '' ? 'No audios in queue.' : 'No matching audios found.'}
+          </div>
         ) : (
-          <>
-            <div style={{ marginBottom: '10px' }}>
-              {selectedVideos.length > 0 ? (
-                <>
-                  <button 
-                    onClick={deleteSelectedVideos}
-                    style={{ padding: '5px 10px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                  >
-                    Delete Selected ({selectedVideos.length})
-                  </button>
-                  <button 
-                    onClick={deselectAllVideos}
-                    style={{ padding: '5px 10px', marginLeft: '10px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                  >
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <button 
-                  onClick={selectAllVideos}
-                  style={{ padding: '5px 10px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                >
-                  Select All ({filteredQueue.length})
-                </button>
-              )}
-            </div>
-            <ul>
-              {filteredQueue.map((video, index) => (
-                <li 
-                  key={video.id} 
-                  style={{ 
-                    margin: '10px 0', 
-                    padding: '10px', 
-                    border: selectedVideos.includes(video.id) ? '2px solid #007bff' : '1px solid #ccc', 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center',
-                    backgroundColor: selectedVideos.includes(video.id) ? '#e3f2fd' : 'transparent'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
+          <ul className="queue-list d-grid gap-3">
+            {filteredQueue.map((video, index) => (
+              <li 
+                key={video.id} 
+                className={`queue-item bg-white d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 ${selectedVideos.includes(video.id) ? 'border-primary bg-primary-subtle' : ''}`}
+              >
+                <div className="d-flex align-items-center gap-3">
+                  <div className="form-check">
                     <input
                       type="checkbox"
+                      className="form-check-input"
                       checked={selectedVideos.includes(video.id)}
                       onChange={() => toggleVideoSelection(video.id)}
-                      style={{ marginRight: '10px' }}
+                      id={`upnext-${video.id}`}
                     />
-                    {/* Thumbnail */}
-                    <div style={{ marginRight: '10px' }}>
-                      <img 
-                        src={`https://img.youtube.com/vi/${video.videoId}/default.jpg`} 
-                        alt={video.title || `Thumbnail for ${video.videoId}`}
-                        style={{ width: '120px', height: '90px', objectFit: 'cover', borderRadius: '4px' }}
-                      />
-                    </div>
-                    <div>
-                      <span style={{ fontWeight: 'bold' }}>#{index + 1}</span> - 
-                      <a 
-                        href={video.url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        style={{ textDecoration: 'none', color: 'inherit', marginLeft: '5px' }}
-                      >
-                        {video.title || `Audio (${video.videoId})`}
-                      </a>
-                      {video.duration && <span style={{ marginLeft: '10px', fontStyle: 'italic' }}>{video.duration}</span>}
-                    </div>
+                    <label className="visually-hidden" htmlFor={`upnext-${video.id}`}>Select {video.title || video.videoId}</label>
                   </div>
-                  <button 
-                    onClick={() => onDeleteVideo(video.id)}
-                    style={{ padding: '5px 10px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                  >
-                    Delete
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </>
+                  <img 
+                    className="thumb"
+                    src={`https://img.youtube.com/vi/${video.videoId}/default.jpg`} 
+                    alt={video.title || `Thumbnail for ${video.videoId}`}
+                  />
+                  <div>
+                    <span className="fw-bold me-1">#{index + 1}</span>
+                    <a 
+                      href={video.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="fw-semibold text-decoration-none text-dark"
+                    >
+                      {video.title || `Audio (${video.videoId})`}
+                    </a>
+                    {video.duration && <span className="badge bg-light text-secondary ms-2 pill">{video.duration}</span>}
+                  </div>
+                </div>
+                <button 
+                  onClick={() => onDeleteVideo(video.id)}
+                  className="btn btn-outline-danger btn-sm"
+                  type="button"
+                >
+                  <i className="bi bi-trash me-1"></i>Delete
+                </button>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </div>

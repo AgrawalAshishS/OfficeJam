@@ -254,43 +254,70 @@ function App() {
 
   return (
     <div className="app">
-      <header>
-        <h1>OfficeJam</h1>
-        <div>
-          <label>
-            <input 
-              type="checkbox" 
+      <header className="hero-card shadow-sm rounded-4 p-4 mb-4 border border-light">
+        <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+          <div>
+            <div className="d-flex flex-wrap gap-2">
+              <span className="badge bg-primary-subtle text-primary-emphasis pill">Live Queue</span>
+              <span className="badge bg-info-subtle text-info-emphasis pill">Synced via Socket</span>
+            </div>
+            <h1 className="mt-2 mb-1 fw-bold">OfficeJam</h1>
+            <p className="text-secondary mb-0">
+              Share YouTube tracks, keep the office playlist flowing, and control playback together.
+            </p>
+          </div>
+          <div className="form-check form-switch ps-0">
+            <input
+              className="form-check-input"
+              type="checkbox"
+              role="switch"
+              id="playerMode"
               checked={isPlayer}
               onChange={(e) => setIsPlayer(e.target.checked)}
             />
-            Enable Player Mode (Central Machine)
-          </label>
+            <label className="form-check-label fw-semibold ms-2" htmlFor="playerMode">
+              Enable Player Mode
+              <small className="d-block text-secondary">Central machine handles playback</small>
+            </label>
+          </div>
         </div>
       </header>
       
-      <nav>
-        <button 
-          className={activeTab === 'add' ? 'active' : ''}
-          onClick={() => setActiveTab('add')}
-        >
-          Add Videos
-        </button>
-        <button 
-          className={activeTab === 'play' ? 'active' : ''}
-          onClick={() => setActiveTab('play')}
-          disabled={!isPlayer}
-        >
-          Play Videos {isPlayer ? '' : '(Player Mode Required)'}
-        </button>
-        <button 
-          className={activeTab === 'history' ? 'active' : ''}
-          onClick={() => setActiveTab('history')}
-        >
-          Play History
-        </button>
+      <nav className="mb-4">
+        <ul className="nav nav-pills glass-panel shadow-sm rounded-4 p-2 flex-wrap gap-2 border border-light mb-0">
+          <li className="nav-item">
+            <button 
+              className={`nav-link ${activeTab === 'add' ? 'active' : ''}`} 
+              onClick={() => setActiveTab('add')}
+              type="button"
+            >
+              <i className="bi bi-plus-circle me-2"></i>Add Videos
+            </button>
+          </li>
+          <li className="nav-item">
+            <button 
+              className={`nav-link d-flex align-items-center ${activeTab === 'play' ? 'active' : ''}`} 
+              onClick={() => setActiveTab('play')}
+              disabled={!isPlayer}
+              type="button"
+            >
+              <i className="bi bi-play-circle me-2"></i>
+              Play Videos {!isPlayer && <span className="ms-1 text-muted">(Player mode)</span>}
+            </button>
+          </li>
+          <li className="nav-item">
+            <button 
+              className={`nav-link ${activeTab === 'history' ? 'active' : ''}`} 
+              onClick={() => setActiveTab('history')}
+              type="button"
+            >
+              <i className="bi bi-clock-history me-2"></i>Play History
+            </button>
+          </li>
+        </ul>
       </nav>
 
-      <main>
+      <main className="glass-panel rounded-4 shadow-sm p-4 border-0">
         {activeTab === 'add' ? (
           <VideoList 
             videos={videos}

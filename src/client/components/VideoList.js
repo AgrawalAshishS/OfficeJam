@@ -54,134 +54,159 @@ const VideoList = ({ videos, onAddVideo, onDeleteVideo, onAddPlaylist, onDeleteM
 
   return (
     <div className="video-list">
-      <h2>Add YouTube Video to Queue</h2>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={videoUrl}
-          onChange={(e) => setVideoUrl(e.target.value)}
-          placeholder="Enter YouTube URL"
-          style={{ width: '70%', padding: '10px' }}
-        />
-        <button type="submit" style={{ padding: '10px 20px', marginLeft: '10px' }}>
-          Add to Queue
-        </button>
-      </form>
-      
-      <h3 style={{ marginTop: '20px' }}>Add YouTube Playlist to Queue</h3>
-      <form onSubmit={handlePlaylistSubmit}>
-        <input
-          type="text"
-          value={playlistUrl}
-          onChange={(e) => setPlaylistUrl(e.target.value)}
-          placeholder="Enter YouTube Playlist URL"
-          style={{ width: '70%', padding: '10px' }}
-        />
-        <button type="submit" style={{ padding: '10px 20px', marginLeft: '10px' }}>
-          Add Playlist
-        </button>
-      </form>
+      <div className="row g-4">
+        <div className="col-lg-6">
+          <div className="card glass-panel border-0 shadow-sm h-100">
+            <div className="card-body">
+              <h2 className="section-title h5 mb-1">Add YouTube Video</h2>
+              <p className="text-secondary small mb-3">Drop in a YouTube URL to queue it instantly.</p>
+              <form onSubmit={handleSubmit} className="d-flex flex-column gap-3">
+                <div className="form-floating">
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="singleVideo"
+                    value={videoUrl}
+                    onChange={(e) => setVideoUrl(e.target.value)}
+                    placeholder="https://youtube.com/watch?v=..."
+                  />
+                  <label htmlFor="singleVideo">YouTube video URL</label>
+                </div>
+                <button type="submit" className="btn btn-primary w-100">
+                  <i className="bi bi-plus-circle me-2"></i>Add to queue
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+        <div className="col-lg-6">
+          <div className="card glass-panel border-0 shadow-sm h-100">
+            <div className="card-body">
+              <h3 className="section-title h5 mb-1">Add Playlist</h3>
+              <p className="text-secondary small mb-3">We will fetch titles and durations for each track.</p>
+              <form onSubmit={handlePlaylistSubmit} className="d-flex flex-column gap-3">
+                <div className="form-floating">
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="playlistUrl"
+                    value={playlistUrl}
+                    onChange={(e) => setPlaylistUrl(e.target.value)}
+                    placeholder="https://youtube.com/playlist?list=..."
+                  />
+                  <label htmlFor="playlistUrl">YouTube playlist URL</label>
+                </div>
+                <button type="submit" className="btn btn-outline-primary w-100">
+                  <i className="bi bi-collection-play me-2"></i>Add playlist
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      <div className="queue-section">
-        <h3>Current Queue ({filteredVideos.length} videos)</h3>
-        
-        {/* Search input for queue */}
-        <div style={{ marginBottom: '15px' }}>
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Filter by title or URL..."
-            style={{
-              width: '100%',
-              padding: '8px',
-              fontSize: '14px',
-              border: '1px solid #ccc',
-              borderRadius: '4px'
-            }}
-          />
+      <div className="queue-section mt-4">
+        <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+          <div>
+            <h3 className="section-title h5 mb-1">Current Queue ({filteredVideos.length} videos)</h3>
+            <p className="text-secondary small mb-0">Search, multi-select, and manage items.</p>
+          </div>
+          <div className="d-flex flex-wrap gap-2">
+            {selectedVideos.length > 0 ? (
+              <>
+                <button 
+                  onClick={deleteSelectedVideos}
+                  className="btn btn-danger btn-sm"
+                  type="button"
+                >
+                  <i className="bi bi-trash me-1"></i>Delete Selected ({selectedVideos.length})
+                </button>
+                <button 
+                  onClick={deselectAllVideos}
+                  className="btn btn-outline-secondary btn-sm"
+                  type="button"
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <button 
+                onClick={selectAllVideos}
+                className="btn btn-outline-primary btn-sm"
+                type="button"
+              >
+                Select All ({filteredVideos.length})
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="mb-3">
+          <div className="input-group">
+            <span className="input-group-text bg-white border-end-0">
+              <i className="bi bi-search text-secondary"></i>
+            </span>
+            <input
+              type="text"
+              className="form-control border-start-0"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Filter by title or URL..."
+            />
+          </div>
         </div>
         
         {filteredVideos.length === 0 ? (
-          <p>{searchTerm.trim() === '' ? 'No videos in queue. Add some videos to get started!' : 'No matching videos found.'}</p>
+          <div className="empty-state">
+            {searchTerm.trim() === '' ? 'No videos in queue. Add some videos to get started!' : 'No matching videos found.'}
+          </div>
         ) : (
-          <>
-            <div style={{ marginBottom: '10px' }}>
-              {selectedVideos.length > 0 ? (
-                <>
-                  <button 
-                    onClick={deleteSelectedVideos}
-                    style={{ padding: '5px 10px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                  >
-                    Delete Selected ({selectedVideos.length})
-                  </button>
-                  <button 
-                    onClick={deselectAllVideos}
-                    style={{ padding: '5px 10px', marginLeft: '10px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                  >
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <button 
-                  onClick={selectAllVideos}
-                  style={{ padding: '5px 10px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                >
-                  Select All ({filteredVideos.length})
-                </button>
-              )}
-            </div>
-            <ul>
-              {filteredVideos.map((video) => (
-                <li 
-                  key={video.id} 
-                  style={{ 
-                    margin: '10px 0', 
-                    padding: '10px', 
-                    border: selectedVideos.includes(video.id) ? '2px solid #007bff' : '1px solid #ccc', 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center',
-                    backgroundColor: selectedVideos.includes(video.id) ? '#e3f2fd' : 'transparent'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
+          <ul className="queue-list d-grid gap-3">
+            {filteredVideos.map((video) => (
+              <li 
+                key={video.id} 
+                className={`queue-item bg-white d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 ${selectedVideos.includes(video.id) ? 'border-primary bg-primary-subtle' : ''}`}
+              >
+                <div className="d-flex align-items-center gap-3">
+                  <div className="form-check">
                     <input
                       type="checkbox"
+                      className="form-check-input"
                       checked={selectedVideos.includes(video.id)}
                       onChange={() => toggleVideoSelection(video.id)}
-                      style={{ marginRight: '10px' }}
+                      id={`queue-${video.id}`}
                     />
-                    {/* Thumbnail */}
-                    <div style={{ marginRight: '10px' }}>
-                      <img 
-                        src={`https://img.youtube.com/vi/${video.videoId}/default.jpg`} 
-                        alt={video.title || `Thumbnail for ${video.videoId}`}
-                        style={{ width: '120px', height: '90px', objectFit: 'cover', borderRadius: '4px' }}
-                      />
-                    </div>
-                    <div>
-                      <a 
-                        href={video.url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        style={{ textDecoration: 'none', color: 'inherit' }}
-                      >
-                        {video.title || `Video (${video.videoId})`}
-                      </a>
-                      {video.duration && <span style={{ marginLeft: '10px', fontStyle: 'italic' }}>{video.duration}</span>}
-                    </div>
+                    <label className="visually-hidden" htmlFor={`queue-${video.id}`}>Select {video.title || video.videoId}</label>
                   </div>
-                  <button 
-                    onClick={() => onDeleteVideo(video.id)}
-                    style={{ padding: '5px 10px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                  >
-                    Delete
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </>
+                  <img 
+                    className="thumb"
+                    src={`https://img.youtube.com/vi/${video.videoId}/default.jpg`} 
+                    alt={video.title || `Thumbnail for ${video.videoId}`}
+                  />
+                  <div>
+                    <a 
+                      href={video.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="fw-semibold text-decoration-none text-dark"
+                    >
+                      {video.title || `Video (${video.videoId})`}
+                    </a>
+                    {video.duration && (
+                      <span className="badge bg-light text-secondary ms-2 pill">{video.duration}</span>
+                    )}
+                  </div>
+                </div>
+                <button 
+                  onClick={() => onDeleteVideo(video.id)}
+                  className="btn btn-outline-danger btn-sm"
+                  type="button"
+                >
+                  <i className="bi bi-trash me-1"></i>Delete
+                </button>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </div>
