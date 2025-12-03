@@ -59,7 +59,29 @@ function App() {
     };
   }, [isPlayer]);
 
-  const addVideo = async (videoUrl) => {
+  const addMedia = async (inputUrl) => {
+    const trimmedUrl = inputUrl.trim();
+    if (!trimmedUrl) {
+      alert('Please enter a YouTube link');
+      return;
+    }
+
+    const playlistId = extractPlaylistId(trimmedUrl);
+    const videoId = extractVideoId(trimmedUrl);
+
+    // Prefer playlist handling when a list id is present
+    const looksLikePlaylist = Boolean(playlistId) && trimmedUrl.includes('list=');
+
+    if (looksLikePlaylist) {
+      await addPlaylist(trimmedUrl);
+      return;
+    }
+
+    // Fall back to single video add; existing validation will guard invalid URLs
+    await addVideo(trimmedUrl, videoId);
+  };
+
+  const addVideo = async (videoUrl, preExtractedId = null) => {
     console.log('Attempting to add video URL:', videoUrl);
     
     // Client-side URL validation
@@ -69,7 +91,7 @@ function App() {
     }
     
     // Extract video ID from YouTube URL
-    const videoId = extractVideoId(videoUrl);
+    const videoId = preExtractedId || extractVideoId(videoUrl);
     console.log('Extracted video ID:', videoId);
     if (!videoId) {
       alert('Invalid YouTube URL');
@@ -321,9 +343,8 @@ function App() {
         {activeTab === 'add' ? (
           <VideoList 
             videos={videos}
-            onAddVideo={addVideo}
+            onAddMedia={addMedia}
             onDeleteVideo={deleteVideo}
-            onAddPlaylist={addPlaylist}
             onDeleteMultipleVideos={deleteMultipleVideos}
           />
         ) : activeTab === 'play' ? (

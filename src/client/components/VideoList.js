@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 
-const VideoList = ({ videos, onAddVideo, onDeleteVideo, onAddPlaylist, onDeleteMultipleVideos }) => {
-  const [videoUrl, setVideoUrl] = useState('');
-  const [playlistUrl, setPlaylistUrl] = useState('');
+const VideoList = ({ videos, onAddMedia, onDeleteVideo, onDeleteMultipleVideos }) => {
+  const [mediaUrl, setMediaUrl] = useState('');
+  const [detectedType, setDetectedType] = useState(null);
   const [selectedVideos, setSelectedVideos] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -12,19 +12,17 @@ const VideoList = ({ videos, onAddVideo, onDeleteVideo, onAddPlaylist, onDeleteM
     (video.url && video.url.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (videoUrl.trim()) {
-      onAddVideo(videoUrl);
-      setVideoUrl('');
-    }
+  const detectType = (url) => {
+    if (!url.trim()) return null;
+    return /[?&]list=|\/playlist/.test(url) ? 'playlist' : 'video';
   };
-  
-  const handlePlaylistSubmit = async (e) => {
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (playlistUrl.trim()) {
-      await onAddPlaylist(playlistUrl);
-      setPlaylistUrl('');
+    if (mediaUrl.trim()) {
+      await onAddMedia(mediaUrl);
+      setMediaUrl('');
+      setDetectedType(null);
     }
   };
   
@@ -55,49 +53,37 @@ const VideoList = ({ videos, onAddVideo, onDeleteVideo, onAddPlaylist, onDeleteM
   return (
     <div className="video-list">
       <div className="row g-4">
-        <div className="col-lg-6">
+        <div className="col-12">
           <div className="card glass-panel border-0 shadow-sm h-100">
             <div className="card-body">
-              <h2 className="section-title h5 mb-1">Add YouTube Video</h2>
-              <p className="text-secondary small mb-3">Drop in a YouTube URL to queue it instantly.</p>
-              <form onSubmit={handleSubmit} className="d-flex flex-column gap-3">
-                <div className="form-floating">
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="singleVideo"
-                    value={videoUrl}
-                    onChange={(e) => setVideoUrl(e.target.value)}
-                    placeholder="https://youtube.com/watch?v=..."
-                  />
-                  <label htmlFor="singleVideo">YouTube video URL</label>
+              <h2 className="section-title h5 mb-1">Queue a YouTube Link</h2>
+              <p className="text-secondary small mb-3">
+                Paste a video or playlist URL and we will handle the right flow automatically.
+              </p>
+              <form onSubmit={handleSubmit} className="d-flex flex-column flex-md-row gap-3 align-items-md-start">
+                <div className="flex-grow-1 w-100">
+                  <div className="form-floating">
+                    <input
+                      type="text"
+                      className="form-control"
+                      id="unifiedUrl"
+                      value={mediaUrl}
+                      onChange={(e) => {
+                        setMediaUrl(e.target.value);
+                        setDetectedType(detectType(e.target.value));
+                      }}
+                      placeholder="https://youtube.com/watch?v=... or /playlist?list=..."
+                    />
+                    <label htmlFor="unifiedUrl">YouTube video or playlist URL</label>
+                  </div>
+                  <div className="form-text text-secondary mt-2">
+                    {detectedType === 'playlist' && 'Detected playlist link — all tracks will be queued.'}
+                    {detectedType === 'video' && 'Detected single video link — will add to queue.'}
+                    {!detectedType && 'Supports full YouTube, youtu.be, and playlist URLs.'}
+                  </div>
                 </div>
-                <button type="submit" className="btn btn-primary w-100">
+                <button type="submit" className="btn btn-primary px-4 align-self-stretch">
                   <i className="bi bi-plus-circle me-2"></i>Add to queue
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-        <div className="col-lg-6">
-          <div className="card glass-panel border-0 shadow-sm h-100">
-            <div className="card-body">
-              <h3 className="section-title h5 mb-1">Add Playlist</h3>
-              <p className="text-secondary small mb-3">We will fetch titles and durations for each track.</p>
-              <form onSubmit={handlePlaylistSubmit} className="d-flex flex-column gap-3">
-                <div className="form-floating">
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="playlistUrl"
-                    value={playlistUrl}
-                    onChange={(e) => setPlaylistUrl(e.target.value)}
-                    placeholder="https://youtube.com/playlist?list=..."
-                  />
-                  <label htmlFor="playlistUrl">YouTube playlist URL</label>
-                </div>
-                <button type="submit" className="btn btn-outline-primary w-100">
-                  <i className="bi bi-collection-play me-2"></i>Add playlist
                 </button>
               </form>
             </div>
