@@ -38,7 +38,7 @@ pipeline {
 
                 stage('deploy docker image to Mysandbox'){
                     steps{
-                        sh 'echo presidentbatteries = registry.toshalinfotech.com/office_jame:0.$BUILD_NUMBER > .env'
+                        sh 'echo office_jame = registry.toshalinfotech.com/office_jame:0.$BUILD_NUMBER > .env'
                         sh 'echo publish_env=dev >> .env'
                         sh 'docker compose --env-file .env up -d'
                     }
