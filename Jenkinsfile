@@ -19,7 +19,7 @@ pipeline {
         stage('Processing For Develop Branch'){
             
             when{
-                branch "feature/docker-setup"
+                branch "master"
             } 
 
 
@@ -39,7 +39,7 @@ pipeline {
                 stage('deploy docker image to Mysandbox'){
                     steps{
                         sh 'echo office_jame = registry.toshalinfotech.com/office_jame:0.$BUILD_NUMBER > .env'
-                        sh 'echo publish_env=dev >> .env'
+                        sh 'echo publish_env=master >> .env'
                         sh 'docker compose --env-file .env up -d'
                     }
                 }
