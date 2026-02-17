@@ -13,4 +13,5 @@ services:
       CLIENT_PORT: 3003
     volumes:
       - ./queue.db:/app/queue.db
+      - /home/ubuntu/Docker/OfficeJam/.env:/app/.env
     restart: unless-stopped
