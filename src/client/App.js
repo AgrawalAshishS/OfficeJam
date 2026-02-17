@@ -17,11 +17,11 @@ function App() {
     socket.on('connect', () => {
       console.log('Connected to server');
     });
-    
+
     socket.on('disconnect', () => {
       console.log('Disconnected from server');
     });
-    
+
     socket.on('queue_update', (queue) => {
       console.log('Received queue update:', queue);
       setVideos(queue);
@@ -43,7 +43,7 @@ function App() {
         setCurrentVideo(null);
       }
     });
-    
+
     socket.on('error', (error) => {
       console.error('Server error:', error);
       alert(`Error: ${error.message}`);
@@ -83,13 +83,13 @@ function App() {
 
   const addVideo = async (videoUrl, preExtractedId = null) => {
     console.log('Attempting to add video URL:', videoUrl);
-    
+
     // Client-side URL validation
     if (!isValidYouTubeUrl(videoUrl)) {
       alert('Invalid YouTube URL. Please enter a valid YouTube video URL.');
       return;
     }
-    
+
     // Extract video ID from YouTube URL
     const videoId = preExtractedId || extractVideoId(videoUrl);
     console.log('Extracted video ID:', videoId);
@@ -101,7 +101,7 @@ function App() {
     // Fetch video metadata
     let title = `Video ${videos.length + 1}`;
     let duration = 'Unknown';
-    
+
     try {
       const response = await fetch(`/api/video/${videoId}`);
       if (response.ok) {
@@ -133,30 +133,30 @@ function App() {
   const isValidYouTubeUrl = (url) => {
     try {
       const urlObj = new URL(url);
-      
+
       // Check if it's a YouTube domain
       const validDomains = ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtu.be'];
       if (!validDomains.includes(urlObj.hostname)) {
         return false;
       }
-      
+
       // For youtu.be short URLs
       if (urlObj.hostname === 'youtu.be') {
         return urlObj.pathname.length > 1; // Must have a video ID
       }
-      
+
       // For full YouTube URLs, must have watch path and v parameter
       if (urlObj.pathname === '/watch' && urlObj.searchParams.has('v')) {
         const videoId = urlObj.searchParams.get('v');
         return videoId && videoId.length === 11; // YouTube video IDs are 11 characters
       }
-      
+
       // For embed URLs
       if (urlObj.pathname.startsWith('/embed/')) {
         const videoId = urlObj.pathname.split('/')[2];
         return videoId && videoId.length === 11;
       }
-      
+
       return false;
     } catch (error) {
       // Invalid URL format
@@ -171,7 +171,7 @@ function App() {
     if (match && match[1]) {
       return match[1];
     }
-    
+
     // Fallback for other formats
     const fallbackRegexp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const fallbackMatch = url.match(fallbackRegexp);
@@ -181,7 +181,7 @@ function App() {
   const playNext = () => {
     socket.emit('play_next');
   };
-  
+
   const deleteVideo = (videoId) => {
     // Validate videoId is a number
     if (typeof videoId !== 'number') {
@@ -190,7 +190,7 @@ function App() {
     }
     socket.emit('delete_video', videoId);
   };
-  
+
   const deleteMultipleVideos = (videoIds) => {
     // Validate videoIds are numbers
     if (!Array.isArray(videoIds) || videoIds.some(id => typeof id !== 'number')) {
@@ -199,10 +199,10 @@ function App() {
     }
     socket.emit('delete_multiple_videos', videoIds);
   };
-  
+
   const addPlaylist = async (playlistUrl) => {
     console.log('Attempting to add playlist URL:', playlistUrl);
-    
+
     // Extract playlist ID from YouTube URL
     const playlistId = extractPlaylistId(playlistUrl);
     console.log('Extracted playlist ID:', playlistId);
@@ -210,12 +210,12 @@ function App() {
       alert('Invalid YouTube Playlist URL');
       return;
     }
-    
+
     try {
       const response = await fetch(`/api/playlist/${playlistId}`);
       if (response.ok) {
         const data = await response.json();
-        
+
         // Add each video to the queue
         for (const video of data.videos) {
           // Fetch individual video metadata
@@ -229,20 +229,21 @@ function App() {
           } catch (error) {
             console.error('Error fetching video metadata:', error);
           }
-          
+
           // Update the ID to be a unique integer
           video.id = Date.now() + Math.floor(Math.random() * 1000);
-          
+
           console.log('Sending video data to server:', video);
           socket.emit('add_video', video);
-          
+
           // Add a small delay to prevent overwhelming the server
           await new Promise(resolve => setTimeout(resolve, 100));
         }
-        
+
         alert(`Added ${data.videos.length} videos to the queue`);
       } else {
-        alert('Failed to fetch playlist');
+        const errorData = await response.json().catch(() => ({}));
+        alert(`Failed to fetch playlist: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error fetching playlist:', error);
@@ -254,19 +255,19 @@ function App() {
   const extractPlaylistId = (url) => {
     try {
       const urlObj = new URL(url);
-      
+
       // Check if it's a YouTube domain
       const validDomains = ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com'];
       if (!validDomains.includes(urlObj.hostname)) {
         return null;
       }
-      
+
       // Must have playlist parameter
       if (urlObj.searchParams.has('list')) {
         const playlistId = urlObj.searchParams.get('list');
-        return playlistId && playlistId.length > 5; // Playlist IDs are typically longer
+        return (playlistId && playlistId.length > 5) ? playlistId : null;
       }
-      
+
       return null;
     } catch (error) {
       // Invalid URL format
@@ -304,12 +305,12 @@ function App() {
           </div>
         </div>
       </header>
-      
+
       <nav className="mb-4">
         <ul className="nav nav-pills glass-panel shadow-sm rounded-4 p-2 flex-wrap gap-2 border border-light mb-0">
           <li className="nav-item">
-            <button 
-              className={`nav-link ${activeTab === 'add' ? 'active' : ''}`} 
+            <button
+              className={`nav-link ${activeTab === 'add' ? 'active' : ''}`}
               onClick={() => setActiveTab('add')}
               type="button"
             >
@@ -317,8 +318,8 @@ function App() {
             </button>
           </li>
           <li className="nav-item">
-            <button 
-              className={`nav-link d-flex align-items-center ${activeTab === 'play' ? 'active' : ''}`} 
+            <button
+              className={`nav-link d-flex align-items-center ${activeTab === 'play' ? 'active' : ''}`}
               onClick={() => setActiveTab('play')}
               disabled={!isPlayer}
               type="button"
@@ -328,8 +329,8 @@ function App() {
             </button>
           </li>
           <li className="nav-item">
-            <button 
-              className={`nav-link ${activeTab === 'history' ? 'active' : ''}`} 
+            <button
+              className={`nav-link ${activeTab === 'history' ? 'active' : ''}`}
               onClick={() => setActiveTab('history')}
               type="button"
             >
@@ -341,14 +342,14 @@ function App() {
 
       <main className="glass-panel rounded-4 shadow-sm p-4 border-0">
         {activeTab === 'add' ? (
-          <VideoList 
+          <VideoList
             videos={videos}
             onAddMedia={addMedia}
             onDeleteVideo={deleteVideo}
             onDeleteMultipleVideos={deleteMultipleVideos}
           />
         ) : activeTab === 'play' ? (
-          <VideoPlayer 
+          <VideoPlayer
             currentVideo={currentVideo}
             queue={videos}
             onVideoFinished={videoFinished}
@@ -357,7 +358,7 @@ function App() {
             onDeleteMultipleVideos={deleteMultipleVideos}
           />
         ) : (
-          <PlayHistory 
+          <PlayHistory
             onAddToQueue={addVideo}
             currentQueue={videos}
           />

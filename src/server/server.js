@@ -11,7 +11,7 @@ const app = express();
 const server = http.createServer(app);
 
 // Get ports from environment variables or use defaults
-const SERVER_PORT = process.env.SERVER_PORT || 3004;
+const SERVER_PORT = process.env.CLIENT_PORT || 3003;
 const CLIENT_PORT = process.env.CLIENT_PORT || 3003;
 
 const io = socketIo(server, {
@@ -41,7 +41,7 @@ const db = new sqlite3.Database('./queue.db', (err) => {
         console.log('Videos table ready');
       }
     });
-    
+
     // Create played videos history table if it doesn't exist
     db.run(`CREATE TABLE IF NOT EXISTS played_videos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -85,7 +85,7 @@ app.get('/', (req, res) => {
 app.get('/api/video/:videoId', async (req, res) => {
   try {
     const videoId = req.params.videoId;
-    
+
     // Check if YouTube API key is configured
     const youtubeApiKey = process.env.YOUTUBE_API_KEY;
     if (!youtubeApiKey) {
@@ -96,24 +96,24 @@ app.get('/api/video/:videoId', async (req, res) => {
         duration: '0:00' // Mock duration
       });
     }
-    
+
     // Log the API key length for debugging (don't log the actual key for security)
     console.log(`YouTube API key configured (length: ${youtubeApiKey.length})`);
-    
+
     // Fetch actual video metadata from YouTube Data API
     try {
       const response = await axios.get(
         `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${youtubeApiKey}&part=snippet,contentDetails`
       );
-      
+
       // Log response status for debugging
       console.log(`YouTube API response status: ${response.status}`);
-      
+
       if (response.data.items && response.data.items.length > 0) {
         const video = response.data.items[0];
         const title = video.snippet.title;
         const duration = parseISO8601Duration(video.contentDetails.duration);
-        
+
         return res.json({
           title: title,
           duration: duration
@@ -130,7 +130,7 @@ app.get('/api/video/:videoId', async (req, res) => {
       console.error('YouTube API Error:', apiError.response?.data || apiError.message);
       console.error('Status:', apiError.response?.status);
       console.error('Headers:', apiError.response?.headers);
-      
+
       // Return mock data as fallback
       return res.json({
         title: `YouTube Video ${req.params.videoId}`,
@@ -161,22 +161,22 @@ app.get('/api/history', (req, res) => {
 // Endpoint to delete a video from history
 app.delete('/api/history/:id', (req, res) => {
   const id = req.params.id;
-  
+
   // Validate ID is a number
   if (!id || isNaN(id)) {
     return res.status(400).json({ error: 'Invalid video ID' });
   }
-  
-  db.run('DELETE FROM played_videos WHERE id = ?', [id], function(err) {
+
+  db.run('DELETE FROM played_videos WHERE id = ?', [id], function (err) {
     if (err) {
       console.error('Error deleting history record:', err.message);
       return res.status(500).json({ error: 'Failed to delete history record' });
     }
-    
+
     if (this.changes === 0) {
       return res.status(404).json({ error: 'History record not found' });
     }
-    
+
     res.json({ message: 'History record deleted successfully' });
   });
 });
@@ -185,33 +185,38 @@ app.delete('/api/history/:id', (req, res) => {
 app.get('/api/playlist/:playlistId', async (req, res) => {
   try {
     const playlistId = req.params.playlistId;
-    
+    console.log(`Received playlist request for ID: "${playlistId}"`);
+
     // Check if YouTube API key is configured
     const youtubeApiKey = process.env.YOUTUBE_API_KEY;
     if (!youtubeApiKey) {
       return res.status(400).json({ error: 'YouTube API key not configured' });
     }
-    
+
     // Fetch playlist items from YouTube Data API
     const maxResults = 50; // Maximum allowed per request
     let allItems = [];
     let nextPageToken = null;
-    
+
     do {
       let url = `https://www.googleapis.com/youtube/v3/playlistItems?playlistId=${playlistId}&key=${youtubeApiKey}&part=snippet,contentDetails&maxResults=${maxResults}`;
       if (nextPageToken) {
         url += `&pageToken=${nextPageToken}`;
       }
-      
-      const response = await axios.get(url);
-      
+
+      const response = await axios.get(url, {
+        headers: {
+          'Referer': 'http://localhost:3004' // Provide a referer in case of restrictions
+        }
+      });
+
       if (response.data.items) {
         allItems = allItems.concat(response.data.items);
       }
-      
+
       nextPageToken = response.data.nextPageToken;
     } while (nextPageToken);
-    
+
     // Transform the data to match our video format
     const videos = allItems
       .filter(item => item.snippet.resourceId.kind === 'youtube#video')
@@ -222,11 +227,13 @@ app.get('/api/playlist/:playlistId', async (req, res) => {
         title: item.snippet.title,
         duration: 'Unknown' // Will be fetched separately if needed
       }));
-    
+
     return res.json({ videos });
   } catch (error) {
     console.error('Error fetching playlist items:', error.message);
-    return res.status(500).json({ error: 'Failed to fetch playlist items' });
+    const status = error.response ? error.response.status : 500;
+    const message = error.response?.data?.error?.message || 'Failed to fetch playlist items';
+    return res.status(status).json({ error: message });
   }
 });
 
@@ -234,30 +241,30 @@ app.get('/api/playlist/:playlistId', async (req, res) => {
 function isValidYouTubeUrl(url) {
   try {
     const urlObj = new URL(url);
-    
+
     // Check if it's a YouTube domain
     const validDomains = ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtu.be'];
     if (!validDomains.includes(urlObj.hostname)) {
       return false;
     }
-    
+
     // For youtu.be short URLs
     if (urlObj.hostname === 'youtu.be') {
       return urlObj.pathname.length > 1; // Must have a video ID
     }
-    
+
     // For full YouTube URLs, must have watch path and v parameter
     if (urlObj.pathname === '/watch' && urlObj.searchParams.has('v')) {
       const videoId = urlObj.searchParams.get('v');
       return videoId && videoId.length === 11; // YouTube video IDs are 11 characters
     }
-    
+
     // For embed URLs
     if (urlObj.pathname.startsWith('/embed/')) {
       const videoId = urlObj.pathname.split('/')[2];
       return videoId && videoId.length === 11;
     }
-    
+
     return false;
   } catch (error) {
     // Invalid URL format
@@ -269,19 +276,19 @@ function isValidYouTubeUrl(url) {
 function sanitizeVideoData(videoData) {
   // Remove any potentially dangerous properties
   const sanitized = {};
-  
+
   // Only allow specific properties
   if (videoData.id) sanitized.id = videoData.id;
   if (videoData.url) sanitized.url = videoData.url;
   if (videoData.videoId) sanitized.videoId = videoData.videoId;
   if (videoData.title) sanitized.title = videoData.title;
   if (videoData.duration) sanitized.duration = videoData.duration;
-  
+
   // Validate URL
   if (sanitized.url && !isValidYouTubeUrl(sanitized.url)) {
     throw new Error('Invalid YouTube URL');
   }
-  
+
   return sanitized;
 }
 
@@ -290,11 +297,11 @@ function parseISO8601Duration(duration) {
   // Parse PT1H30M15S format
   const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
   if (!match) return 'Unknown';
-  
+
   const hours = parseInt(match[1]) || 0;
   const minutes = parseInt(match[2]) || 0;
   const seconds = parseInt(match[3]) || 0;
-  
+
   if (hours > 0) {
     return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   } else {
@@ -304,21 +311,21 @@ function parseISO8601Duration(duration) {
 
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
-  
+
   // Send current queue to newly connected client
   socket.emit('queue_update', videoQueue);
-  
+
   // Handle adding video to queue
   socket.on('add_video', (videoData) => {
     try {
       console.log('Adding video to queue:', videoData);
-      
+
       // Sanitize and validate video data
       const sanitizedData = sanitizeVideoData(videoData);
-      
+
       videoQueue.push(sanitizedData);
       console.log('Updated queue:', videoQueue);
-      
+
       // Save to database
       const stmt = db.prepare('INSERT INTO videos (id, url, videoId, title, duration) VALUES (?, ?, ?, ?, ?)');
       stmt.run(sanitizedData.id, sanitizedData.url, sanitizedData.videoId, sanitizedData.title, sanitizedData.duration, (err) => {
@@ -329,7 +336,7 @@ io.on('connection', (socket) => {
         }
       });
       stmt.finalize();
-      
+
       io.emit('queue_update', videoQueue);
     } catch (error) {
       console.error('Error adding video to queue:', error.message);
@@ -337,13 +344,13 @@ io.on('connection', (socket) => {
       socket.emit('error', { message: 'Invalid video data' });
     }
   });
-  
+
   // Handle video finished event
   socket.on('video_finished', () => {
     console.log('Video finished, moving to next');
     if (videoQueue.length > 0) {
       currentVideo = videoQueue.shift();
-      
+
       // Validate currentVideo has valid ID
       if (!currentVideo || typeof currentVideo.id !== 'number' || !Number.isInteger(currentVideo.id)) {
         console.error('Invalid current video for deletion:', currentVideo);
@@ -351,7 +358,7 @@ io.on('connection', (socket) => {
         io.emit('stop_video');
         return;
       }
-      
+
       // Record played video in history
       if (currentVideo) {
         const historyStmt = db.prepare('INSERT INTO played_videos (videoId, title, url) VALUES (?, ?, ?)');
@@ -372,7 +379,7 @@ io.on('connection', (socket) => {
         });
         historyStmt.finalize();
       }
-      
+
       // Remove from database
       const stmt = db.prepare('DELETE FROM videos WHERE id = ?');
       stmt.run(currentVideo.id, (err) => {
@@ -383,7 +390,7 @@ io.on('connection', (socket) => {
         }
       });
       stmt.finalize();
-      
+
       io.emit('queue_update', videoQueue);
       io.emit('play_video', currentVideo);
     } else {
@@ -391,12 +398,12 @@ io.on('connection', (socket) => {
       io.emit('stop_video');
     }
   });
-  
+
   // Handle manual play request
   socket.on('play_next', () => {
     if (videoQueue.length > 0) {
       currentVideo = videoQueue.shift();
-      
+
       // Validate currentVideo has valid ID
       if (!currentVideo || typeof currentVideo.id !== 'number' || !Number.isInteger(currentVideo.id)) {
         console.error('Invalid current video for deletion:', currentVideo);
@@ -404,7 +411,7 @@ io.on('connection', (socket) => {
         io.emit('stop_video');
         return;
       }
-      
+
       // Record played video in history
       if (currentVideo) {
         const historyStmt = db.prepare('INSERT INTO played_videos (videoId, title, url) VALUES (?, ?, ?)');
@@ -425,7 +432,7 @@ io.on('connection', (socket) => {
         });
         historyStmt.finalize();
       }
-      
+
       // Remove from database
       const stmt = db.prepare('DELETE FROM videos WHERE id = ?');
       stmt.run(currentVideo.id, (err) => {
@@ -436,12 +443,12 @@ io.on('connection', (socket) => {
         }
       });
       stmt.finalize();
-      
+
       io.emit('queue_update', videoQueue);
       io.emit('play_video', currentVideo);
     }
   });
-  
+
   // Handle video deletion from queue
   socket.on('delete_video', (videoId) => {
     // Validate videoId is a number
@@ -450,10 +457,10 @@ io.on('connection', (socket) => {
       socket.emit('error', { message: 'Invalid video ID' });
       return;
     }
-    
+
     console.log('Deleting video from queue:', videoId);
     videoQueue = videoQueue.filter(video => video.id !== videoId);
-    
+
     // Remove from database
     const stmt = db.prepare('DELETE FROM videos WHERE id = ?');
     stmt.run(videoId, (err) => {
@@ -464,10 +471,10 @@ io.on('connection', (socket) => {
       }
     });
     stmt.finalize();
-    
+
     io.emit('queue_update', videoQueue);
   });
-  
+
   // Handle multiple videos deletion from queue
   socket.on('delete_multiple_videos', (videoIds) => {
     // Validate videoIds is an array of numbers
@@ -476,10 +483,10 @@ io.on('connection', (socket) => {
       socket.emit('error', { message: 'Invalid video IDs' });
       return;
     }
-    
+
     console.log('Deleting multiple videos from queue:', videoIds);
     videoQueue = videoQueue.filter(video => !videoIds.includes(video.id));
-    
+
     // Remove from database in a single transaction
     const placeholders = videoIds.map(() => '?').join(',');
     const stmt = db.prepare(`DELETE FROM videos WHERE id IN (${placeholders})`);
@@ -491,10 +498,10 @@ io.on('connection', (socket) => {
       }
     });
     stmt.finalize();
-    
+
     io.emit('queue_update', videoQueue);
   });
-  
+
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
   });
