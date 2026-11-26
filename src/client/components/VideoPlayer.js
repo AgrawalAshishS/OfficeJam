@@ -148,16 +148,13 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext, onDelet
                 >
                   {currentVideo.title || `Audio (${currentVideo.videoId})`}
                 </a>
-                {currentVideo.duration && (
+                {currentVideo.duration && currentVideo.duration !== 'Unknown' && (
                   <span className="badge bg-light text-secondary ms-2 pill">{currentVideo.duration}</span>
                 )}
               </div>
               <div className="d-flex flex-wrap gap-2">
                 <button onClick={onPlayNext} className="btn btn-primary">
                   <i className="bi bi-skip-forward-fill me-1"></i>Play Next Audio
-                </button>
-                <button onClick={onVideoFinished} className="btn btn-outline-danger">
-                  Skip Current
                 </button>
               </div>
             </div>
@@ -173,9 +170,6 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext, onDelet
                 <div className="d-flex flex-wrap gap-2">
                   <button onClick={onPlayNext} className="btn btn-primary">
                     Play Next Audio
-                  </button>
-                  <button onClick={onVideoFinished} className="btn btn-outline-danger">
-                    Skip Current
                   </button>
                 </div>
               )}
@@ -272,7 +266,7 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext, onDelet
                     >
                       {video.title || `Audio (${video.videoId})`}
                     </a>
-                    {video.duration && <span className="badge bg-light text-secondary ms-2 pill">{video.duration}</span>}
+                    {video.duration && video.duration !== 'Unknown' && <span className="badge bg-light text-secondary ms-2 pill">{video.duration}</span>}
                   </div>
                 </div>
                 <button 

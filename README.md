@@ -8,6 +8,8 @@ A centralized music player web application that allows multiple users to add You
 - Centralized video player that automatically plays videos from the queue
 - Real-time synchronization across all clients using Socket.IO
 - Automatic playback of the next video when the current one finishes
+- Shared Meeting Mode (off by default) pauses playback and resumes the interrupted track when turned off
+- Searchable, paginated play history
 - Responsive web interface with React frontend
 
 ## Tech Stack
@@ -85,9 +87,10 @@ The application will be available at http://localhost:3003 (or the port specifie
 
 1. Open the application in a browser on the central machine (this will be the video player)
 2. Open the application in browsers on other devices/nodes
-3. On any device, paste YouTube URLs into the input field and click "Add to Queue"
-4. On the central machine, click "Play Videos" tab to view the player
-5. Videos will automatically play one after another from the queue
+3. On the central machine, enable Player Mode once; playback will switch to the player automatically
+4. On any device, paste YouTube URLs into the input field and click "Add to Queue"
+5. The first queued video starts automatically, and the rest play in order
+6. Turn on Meeting Mode on any device to stop playback and pause the queue; turn it off to resume
 
 ## Environment Variables
 
@@ -95,7 +98,7 @@ You can customize the application behavior using environment variables:
 
 - `SERVER_PORT`: Port for the backend server (default: 3004)
 - `CLIENT_PORT`: Port for the client development server (default: 3003)
-- `YOUTUBE_API_KEY`: YouTube Data API key for enhanced metadata (optional)
+- `YOUTUBE_API_KEY`: YouTube Data API key for exact durations and adding full playlists; video titles are fetched without a key. Without it, a playlist-style video link adds only its current video.
 
 Create a `.env` file in the project root to set these variables:
 ```
@@ -109,9 +112,9 @@ YOUTUBE_API_KEY=your_youtube_api_key_here
 1. Users add YouTube videos through the "Add Videos" interface
 2. Videos are added to a shared queue stored on the server
 3. All connected clients receive real-time updates of the queue
-4. When the central player finishes a video, it notifies the server
-5. The server removes the played video from the queue and sends the next one
-6. The central player receives the new video and starts playing it
+4. When Meeting Mode is off, the server starts the first queued video automatically
+5. When the central player finishes a video, it notifies the server and the next one starts
+6. Meeting Mode stops playback and resumes the interrupted video when disabled
 
 ## Contributing
 
