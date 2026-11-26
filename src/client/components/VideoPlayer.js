@@ -240,7 +240,7 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext, onDelet
                 key={video.id} 
                 className={`queue-item bg-white d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 ${selectedVideos.includes(video.id) ? 'border-primary bg-primary-subtle' : ''}`}
               >
-                <div className="d-flex align-items-center gap-3">
+                <div className="queue-item-content d-flex align-items-center gap-3">
                   <div className="form-check">
                     <input
                       type="checkbox"
@@ -256,22 +256,22 @@ const VideoPlayer = ({ currentVideo, queue, onVideoFinished, onPlayNext, onDelet
                     src={`https://img.youtube.com/vi/${video.videoId}/default.jpg`} 
                     alt={video.title || `Thumbnail for ${video.videoId}`}
                   />
-                  <div>
-                    <span className="fw-bold me-1">#{index + 1}</span>
+                  <div className="queue-item-details queue-item-details-inline">
+                    <span className="queue-item-index fw-bold">#{index + 1}</span>
                     <a 
                       href={video.url} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="fw-semibold text-decoration-none text-dark"
+                      className="queue-item-title fw-semibold text-decoration-none text-dark"
                     >
                       {video.title || `Audio (${video.videoId})`}
                     </a>
-                    {video.duration && video.duration !== 'Unknown' && <span className="badge bg-light text-secondary ms-2 pill">{video.duration}</span>}
+                    {video.duration && video.duration !== 'Unknown' && <span className="queue-item-duration badge bg-light text-secondary pill">{video.duration}</span>}
                   </div>
                 </div>
                 <button 
                   onClick={() => onDeleteVideo(video.id)}
-                  className="btn btn-outline-danger btn-sm"
+                  className="btn btn-outline-danger btn-sm queue-item-delete"
                   type="button"
                 >
                   <i className="bi bi-trash me-1"></i>Delete

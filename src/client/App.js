@@ -315,7 +315,7 @@ function App() {
           <div className="mode-switches">
             <div className="form-check form-switch mb-0">
               <input
-                className="form-check-input"
+                className="form-check-input rounded-pill"
                 type="checkbox"
                 role="switch"
                 id="playerMode"
@@ -328,7 +328,7 @@ function App() {
             </div>
             <div className="form-check form-switch mb-0">
               <input
-                className="form-check-input"
+                className="form-check-input rounded-pill"
                 type="checkbox"
                 role="switch"
                 id="meetingMode"
