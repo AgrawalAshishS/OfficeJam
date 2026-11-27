@@ -54,6 +54,11 @@ const db = new sqlite3.Database('./queue.db', (err) => {
         console.error('Error creating played_videos table:', err.message);
       } else {
         console.log('Played videos table ready');
+        db.run('CREATE INDEX IF NOT EXISTS idx_played_videos_played_at_id ON played_videos (playedAt DESC, id DESC)', (indexError) => {
+          if (indexError) {
+            console.error('Error creating played videos index:', indexError.message);
+          }
+        });
       }
     });
   }
@@ -65,6 +70,100 @@ app.use(express.static(path.join(__dirname, '../../dist')));
 // Store video queue in memory
 let videoQueue = [];
 let currentVideo = null;
+let pausedVideo = null;
+let meetingMode = false;
+
+function startNextVideo() {
+  if (meetingMode || videoQueue.length === 0) {
+    return false;
+  }
+
+  currentVideo = videoQueue.shift();
+  if (!currentVideo || !Number.isInteger(currentVideo.id)) {
+    console.error('Invalid current video:', currentVideo);
+    currentVideo = null;
+    io.emit('stop_video');
+    return false;
+  }
+
+  const historyStmt = db.prepare('INSERT INTO played_videos (videoId, title, url) VALUES (?, ?, ?)');
+  historyStmt.run(currentVideo.videoId, currentVideo.title, currentVideo.url, (err) => {
+    if (err) {
+      console.error('Error recording played video:', err.message);
+    }
+  });
+  historyStmt.finalize();
+
+  const stmt = db.prepare('DELETE FROM videos WHERE id = ?');
+  stmt.run(currentVideo.id, (err) => {
+    if (err) {
+      console.error('Error deleting video from database:', err.message);
+    }
+  });
+  stmt.finalize();
+
+  io.emit('queue_update', videoQueue);
+  io.emit('play_video', currentVideo);
+  return true;
+}
+
+async function fetchYouTubeVideoMetadata(videoId) {
+  const youtubeApiKey = process.env.YOUTUBE_API_KEY;
+  if (youtubeApiKey) {
+    try {
+      const response = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
+        params: {
+          id: videoId,
+          key: youtubeApiKey,
+          part: 'snippet,contentDetails'
+        }
+      });
+      const video = response.data.items && response.data.items[0];
+      if (video) {
+        return {
+          title: video.snippet.title,
+          duration: parseISO8601Duration(video.contentDetails.duration)
+        };
+      }
+    } catch (error) {
+      console.error('YouTube Data API error:', error.response?.data || error.message);
+    }
+  }
+
+  const response = await axios.get('https://www.youtube.com/oembed', {
+    params: {
+      url: `https://www.youtube.com/watch?v=${videoId}`,
+      format: 'json'
+    }
+  });
+  return { title: response.data.title, duration: 'Unknown' };
+}
+
+function isPlaceholderTitle(video) {
+  return !video.title ||
+    video.title === video.url ||
+    video.title.startsWith('YouTube Video ') ||
+    /^Video \d+$/.test(video.title);
+}
+
+async function refreshQueuedVideoMetadata() {
+  await Promise.all(videoQueue.filter(isPlaceholderTitle).map(async (video) => {
+    try {
+      const metadata = await fetchYouTubeVideoMetadata(video.videoId);
+      video.title = metadata.title;
+      video.duration = metadata.duration;
+      await new Promise((resolve, reject) => {
+        db.run(
+          'UPDATE videos SET title = ?, duration = ? WHERE id = ?',
+          [metadata.title, metadata.duration, video.id],
+          (error) => error ? reject(error) : resolve()
+        );
+      });
+    } catch (error) {
+      console.error(`Error refreshing metadata for ${video.videoId}:`, error.message);
+    }
+  }));
+}
 
 // Load queue from database on startup
 db.all('SELECT * FROM videos ORDER BY id', (err, rows) => {
@@ -73,6 +172,10 @@ db.all('SELECT * FROM videos ORDER BY id', (err, rows) => {
   } else {
     videoQueue = rows;
     console.log(`Loaded ${videoQueue.length} videos from database`);
+    refreshQueuedVideoMetadata().then(() => {
+      io.emit('queue_update', videoQueue);
+      if (!meetingMode) startNextVideo();
+    });
   }
 });
 
@@ -84,78 +187,53 @@ app.get('/', (req, res) => {
 // Endpoint to fetch YouTube video metadata
 app.get('/api/video/:videoId', async (req, res) => {
   try {
-    const videoId = req.params.videoId;
-
-    // Check if YouTube API key is configured
-    const youtubeApiKey = process.env.YOUTUBE_API_KEY;
-    if (!youtubeApiKey) {
-      // Return mock data if no API key is configured
-      console.log('No YouTube API key configured, returning mock data');
-      return res.json({
-        title: `YouTube Video ${videoId}`,
-        duration: '0:00' // Mock duration
-      });
-    }
-
-    // Log the API key length for debugging (don't log the actual key for security)
-    console.log(`YouTube API key configured (length: ${youtubeApiKey.length})`);
-
-    // Fetch actual video metadata from YouTube Data API
-    try {
-      const response = await axios.get(
-        `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${youtubeApiKey}&part=snippet,contentDetails`
-      );
-
-      // Log response status for debugging
-      console.log(`YouTube API response status: ${response.status}`);
-
-      if (response.data.items && response.data.items.length > 0) {
-        const video = response.data.items[0];
-        const title = video.snippet.title;
-        const duration = parseISO8601Duration(video.contentDetails.duration);
-
-        return res.json({
-          title: title,
-          duration: duration
-        });
-      } else {
-        // Return mock data if video not found
-        console.log('Video not found in YouTube API response');
-        return res.json({
-          title: `YouTube Video ${videoId}`,
-          duration: 'Unknown'
-        });
-      }
-    } catch (apiError) {
-      console.error('YouTube API Error:', apiError.response?.data || apiError.message);
-      console.error('Status:', apiError.response?.status);
-      console.error('Headers:', apiError.response?.headers);
-
-      // Return mock data as fallback
-      return res.json({
-        title: `YouTube Video ${req.params.videoId}`,
-        duration: 'Unknown'
-      });
-    }
+    res.json(await fetchYouTubeVideoMetadata(req.params.videoId));
   } catch (error) {
-    console.error('Error fetching video metadata:', error.message);
-    // Return mock data as fallback
-    res.json({
-      title: `YouTube Video ${req.params.videoId}`,
-      duration: 'Unknown'
-    });
+    console.error('Error fetching video metadata:', error.response?.data || error.message);
+    res.status(502).json({ error: 'Unable to fetch YouTube video metadata' });
   }
 });
 
 // Endpoint to fetch played video history
 app.get('/api/history', (req, res) => {
-  db.all('SELECT * FROM played_videos ORDER BY playedAt DESC LIMIT 300', (err, rows) => {
-    if (err) {
-      console.error('Error fetching history:', err.message);
-      return res.status(500).json({ error: 'Failed to fetch history' });
+  const requestedPage = Number.parseInt(req.query.page, 10);
+  const requestedPageSize = Number.parseInt(req.query.limit, 10);
+  const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const pageSize = Number.isSafeInteger(requestedPageSize) && requestedPageSize > 0
+    ? Math.min(requestedPageSize, 100)
+    : 20;
+  const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+  const where = search ? 'WHERE title LIKE ? OR url LIKE ? OR videoId LIKE ?' : '';
+  const searchParams = search ? [`%${search}%`, `%${search}%`, `%${search}%`] : [];
+
+  db.get(
+    `SELECT COUNT(*) AS total, (SELECT COUNT(*) FROM played_videos) AS totalPlayed FROM played_videos ${where}`,
+    searchParams,
+    (countError, counts) => {
+      if (countError) {
+        console.error('Error counting history:', countError.message);
+        return res.status(500).json({ error: 'Failed to fetch history' });
+      }
+
+      db.all(
+        `SELECT * FROM played_videos ${where} ORDER BY playedAt DESC, id DESC LIMIT ? OFFSET ?`,
+        [...searchParams, pageSize, (page - 1) * pageSize],
+        (err, rows) => {
+          if (err) {
+            console.error('Error fetching history:', err.message);
+            return res.status(500).json({ error: 'Failed to fetch history' });
+          }
+          res.json({
+            items: rows,
+            total: counts.total,
+            totalPlayed: counts.totalPlayed,
+            page,
+            pageSize
+          });
+        }
+      );
     }
-    res.json(rows);
-  });
+  );
 });
 
 // Endpoint to delete a video from history
@@ -190,7 +268,10 @@ app.get('/api/playlist/:playlistId', async (req, res) => {
     // Check if YouTube API key is configured
     const youtubeApiKey = process.env.YOUTUBE_API_KEY;
     if (!youtubeApiKey) {
-      return res.status(400).json({ error: 'YouTube API key not configured' });
+      return res.status(400).json({
+        error: 'YouTube API key not configured',
+        code: 'YOUTUBE_API_KEY_MISSING'
+      });
     }
 
     // Fetch playlist items from YouTube Data API
@@ -314,6 +395,29 @@ io.on('connection', (socket) => {
 
   // Send current queue to newly connected client
   socket.emit('queue_update', videoQueue);
+  socket.emit('playback_state', { meetingMode, currentVideo });
+
+  socket.on('player_mode', (enabled) => {
+    if (enabled && !meetingMode && currentVideo) {
+      socket.emit('play_video', currentVideo);
+    }
+  });
+
+  socket.on('meeting_mode', (enabled) => {
+    meetingMode = Boolean(enabled);
+    if (meetingMode && currentVideo) {
+      pausedVideo = currentVideo;
+      currentVideo = null;
+      io.emit('stop_video');
+    } else if (!meetingMode && pausedVideo) {
+      currentVideo = pausedVideo;
+      pausedVideo = null;
+      io.emit('play_video', currentVideo);
+    } else if (!meetingMode) {
+      startNextVideo();
+    }
+    io.emit('meeting_mode_update', meetingMode);
+  });
 
   // Handle adding video to queue
   socket.on('add_video', (videoData) => {
@@ -338,6 +442,9 @@ io.on('connection', (socket) => {
       stmt.finalize();
 
       io.emit('queue_update', videoQueue);
+      if (!meetingMode && !currentVideo && !pausedVideo) {
+        startNextVideo();
+      }
     } catch (error) {
       console.error('Error adding video to queue:', error.message);
       // Optionally send error back to client
@@ -348,52 +455,9 @@ io.on('connection', (socket) => {
   // Handle video finished event
   socket.on('video_finished', () => {
     console.log('Video finished, moving to next');
-    if (videoQueue.length > 0) {
-      currentVideo = videoQueue.shift();
-
-      // Validate currentVideo has valid ID
-      if (!currentVideo || typeof currentVideo.id !== 'number' || !Number.isInteger(currentVideo.id)) {
-        console.error('Invalid current video for deletion:', currentVideo);
-        currentVideo = null;
-        io.emit('stop_video');
-        return;
-      }
-
-      // Record played video in history
-      if (currentVideo) {
-        const historyStmt = db.prepare('INSERT INTO played_videos (videoId, title, url) VALUES (?, ?, ?)');
-        historyStmt.run(currentVideo.videoId, currentVideo.title, currentVideo.url, (err) => {
-          if (err) {
-            console.error('Error recording played video:', err.message);
-          } else {
-            console.log('Video recorded in history');
-            // Delete old records if more than 300
-            db.run('DELETE FROM played_videos WHERE id NOT IN (SELECT id FROM played_videos ORDER BY playedAt DESC LIMIT 300)', (err) => {
-              if (err) {
-                console.error('Error deleting old history records:', err.message);
-              } else {
-                console.log('Old history records deleted');
-              }
-            });
-          }
-        });
-        historyStmt.finalize();
-      }
-
-      // Remove from database
-      const stmt = db.prepare('DELETE FROM videos WHERE id = ?');
-      stmt.run(currentVideo.id, (err) => {
-        if (err) {
-          console.error('Error deleting video from database:', err.message);
-        } else {
-          console.log('Video deleted from database');
-        }
-      });
-      stmt.finalize();
-
-      io.emit('queue_update', videoQueue);
-      io.emit('play_video', currentVideo);
-    } else {
+    if (meetingMode) return;
+    currentVideo = null;
+    if (!startNextVideo()) {
       currentVideo = null;
       io.emit('stop_video');
     }
@@ -401,52 +465,7 @@ io.on('connection', (socket) => {
 
   // Handle manual play request
   socket.on('play_next', () => {
-    if (videoQueue.length > 0) {
-      currentVideo = videoQueue.shift();
-
-      // Validate currentVideo has valid ID
-      if (!currentVideo || typeof currentVideo.id !== 'number' || !Number.isInteger(currentVideo.id)) {
-        console.error('Invalid current video for deletion:', currentVideo);
-        currentVideo = null;
-        io.emit('stop_video');
-        return;
-      }
-
-      // Record played video in history
-      if (currentVideo) {
-        const historyStmt = db.prepare('INSERT INTO played_videos (videoId, title, url) VALUES (?, ?, ?)');
-        historyStmt.run(currentVideo.videoId, currentVideo.title, currentVideo.url, (err) => {
-          if (err) {
-            console.error('Error recording played video:', err.message);
-          } else {
-            console.log('Video recorded in history');
-            // Delete old records if more than 300
-            db.run('DELETE FROM played_videos WHERE id NOT IN (SELECT id FROM played_videos ORDER BY playedAt DESC LIMIT 300)', (err) => {
-              if (err) {
-                console.error('Error deleting old history records:', err.message);
-              } else {
-                console.log('Old history records deleted');
-              }
-            });
-          }
-        });
-        historyStmt.finalize();
-      }
-
-      // Remove from database
-      const stmt = db.prepare('DELETE FROM videos WHERE id = ?');
-      stmt.run(currentVideo.id, (err) => {
-        if (err) {
-          console.error('Error deleting video from database:', err.message);
-        } else {
-          console.log('Video deleted from database');
-        }
-      });
-      stmt.finalize();
-
-      io.emit('queue_update', videoQueue);
-      io.emit('play_video', currentVideo);
-    }
+    if (!meetingMode) startNextVideo();
   });
 
   // Handle video deletion from queue

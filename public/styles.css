@@ -28,11 +28,64 @@ body {
 .hero-card {
   backdrop-filter: blur(12px);
   background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 48px rgba(2, 12, 27, 0.16);
+}
+
+.mode-switches {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 1rem 2rem;
+}
+
+.mode-switches .form-check {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0;
+  padding-left: 0;
+  white-space: nowrap;
+}
+
+.mode-switches .form-check-input {
+  float: none;
+  flex: 0 0 auto;
+  margin: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn {
+  border-radius: 999px;
+  transition: none;
+}
+
+.btn:hover {
+  color: var(--bs-btn-color);
+  background-color: var(--bs-btn-bg);
+  border-color: var(--bs-btn-border-color);
+  box-shadow: none;
+  transform: none;
+}
+
+.btn:focus-visible,
+.nav-pills .nav-link:focus-visible {
+  outline: 3px solid rgba(31, 111, 235, 0.35);
+  outline-offset: 3px;
 }
 
 .nav-pills .nav-link {
   border-radius: 999px;
   font-weight: 600;
+  transition: none;
+}
+
+.nav-pills .nav-link:hover:not(.active) {
+  color: var(--bs-nav-link-color);
+  background-color: transparent;
+  box-shadow: none;
 }
 
 .nav-pills .nav-link.active {
@@ -50,8 +103,74 @@ body {
   letter-spacing: -0.01em;
 }
 
+.queue-composer {
+  overflow: hidden;
+  border-radius: 18px;
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(31, 111, 235, 0.08), transparent 42%),
+    #fff;
+}
+
+.queue-composer .card-body {
+  padding: clamp(20px, 4vw, 32px);
+}
+
+.composer-icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  place-items: center;
+  border-radius: 14px;
+  background: #eaf2ff;
+  color: var(--brand-primary);
+  font-size: 1.2rem;
+}
+
+.queue-submit {
+  display: inline-flex;
+  min-width: 176px;
+  min-height: 56px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  align-self: stretch;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #17263b, #0c1526);
+  box-shadow: 0 8px 20px rgba(12, 21, 38, 0.2);
+  color: #fff;
+  white-space: nowrap;
+}
+
+.queue-submit:hover {
+  background: linear-gradient(135deg, #17263b, #0c1526);
+  box-shadow: 0 8px 20px rgba(12, 21, 38, 0.2);
+  color: #fff;
+}
+
+.queue-submit:focus-visible {
+  outline: 3px solid rgba(31, 111, 235, 0.35);
+  outline-offset: 3px;
+}
+
+
+
+.spin {
+  display: inline-block;
+  animation: spin 900ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .queue-list,
 .history-list {
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
   list-style: none;
   padding: 0;
   margin: 0;
@@ -59,10 +178,88 @@ body {
 
 .queue-item,
 .history-item {
+  width: 100%;
+  min-width: 0;
   border: 1px solid #e7eaf0;
   border-radius: 14px;
   padding: 12px;
   transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+}
+
+.history-content {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.history-content .thumb {
+  flex: 0 0 128px;
+}
+
+.history-content > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.history-title {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-actions {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.queue-item-content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.queue-item-content .thumb {
+  flex: 0 0 128px;
+}
+
+.queue-item-details {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.queue-item-details-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.queue-item-index,
+.queue-item-duration {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.queue-item-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.queue-item-details-inline .queue-item-title {
+  margin-right: 2.5rem;
+}
+
+.queue-item-delete {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  white-space: nowrap;
 }
 
 .queue-item:hover,
@@ -100,4 +297,17 @@ body {
   border-radius: 14px;
   overflow: hidden;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 767.98px) {
+  .queue-submit {
+    width: 100%;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .mode-switches {
+    flex-wrap: wrap;
+    gap: 0.75rem 1.25rem;
+  }
 }

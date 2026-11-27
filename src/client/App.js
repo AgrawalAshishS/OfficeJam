@@ -12,10 +12,12 @@ function App() {
   const [currentVideo, setCurrentVideo] = useState(null);
   const [activeTab, setActiveTab] = useState('add'); // 'add', 'play', or 'history'
   const [isPlayer, setIsPlayer] = useState(false); // Whether this client is the central player
+  const [meetingMode, setMeetingMode] = useState(false);
 
   useEffect(() => {
     socket.on('connect', () => {
       console.log('Connected to server');
+      if (isPlayer) socket.emit('player_mode', true);
     });
 
     socket.on('disconnect', () => {
@@ -26,6 +28,13 @@ function App() {
       console.log('Received queue update:', queue);
       setVideos(queue);
     });
+
+    socket.on('playback_state', ({ meetingMode: isMeeting, currentVideo: playingVideo }) => {
+      setMeetingMode(isMeeting);
+      if (isPlayer) setCurrentVideo(playingVideo);
+    });
+
+    socket.on('meeting_mode_update', setMeetingMode);
 
     socket.on('play_video', (video) => {
       // Only the designated player should play videos
@@ -49,10 +58,14 @@ function App() {
       alert(`Error: ${error.message}`);
     });
 
+    if (socket.connected) socket.emit('player_mode', isPlayer);
+
     return () => {
       socket.off('connect');
       socket.off('disconnect');
       socket.off('queue_update');
+      socket.off('playback_state');
+      socket.off('meeting_mode_update');
       socket.off('play_video');
       socket.off('stop_video');
       socket.off('error');
@@ -243,6 +256,16 @@ function App() {
         alert(`Added ${data.videos.length} videos to the queue`);
       } else {
         const errorData = await response.json().catch(() => ({}));
+        if (errorData.code === 'YOUTUBE_API_KEY_MISSING') {
+          const videoId = extractVideoId(playlistUrl);
+          if (videoId) {
+            await addVideo(`https://www.youtube.com/watch?v=${videoId}`, videoId);
+            alert('YouTube API key is not configured. Added only the video in the link.');
+          } else {
+            alert('YouTube API key is required to add a playlist. Paste a link to a specific video to add that video.');
+          }
+          return;
+        }
         alert(`Failed to fetch playlist: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
@@ -278,7 +301,7 @@ function App() {
   return (
     <div className="app">
       <header className="hero-card shadow-sm rounded-4 p-4 mb-4 border border-light">
-        <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+        <div className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
           <div>
             <div className="d-flex flex-wrap gap-2">
               <span className="badge bg-primary-subtle text-primary-emphasis pill">Live Queue</span>
@@ -289,19 +312,33 @@ function App() {
               Share YouTube tracks, keep the office playlist flowing, and control playback together.
             </p>
           </div>
-          <div className="form-check form-switch ps-0">
-            <input
-              className="form-check-input"
-              type="checkbox"
-              role="switch"
-              id="playerMode"
-              checked={isPlayer}
-              onChange={(e) => setIsPlayer(e.target.checked)}
-            />
-            <label className="form-check-label fw-semibold ms-2" htmlFor="playerMode">
-              Enable Player Mode
-              <small className="d-block text-secondary">Central machine handles playback</small>
-            </label>
+          <div className="mode-switches">
+            <div className="form-check form-switch mb-0">
+              <input
+                className="form-check-input rounded-pill"
+                type="checkbox"
+                role="switch"
+                id="playerMode"
+                checked={isPlayer}
+                onChange={(e) => setIsPlayer(e.target.checked)}
+              />
+              <label className="form-check-label fw-semibold" htmlFor="playerMode">
+                Enable Player Mode
+              </label>
+            </div>
+            <div className="form-check form-switch mb-0">
+              <input
+                className="form-check-input rounded-pill"
+                type="checkbox"
+                role="switch"
+                id="meetingMode"
+                checked={meetingMode}
+                onChange={(e) => socket.emit('meeting_mode', e.target.checked)}
+              />
+              <label className="form-check-label fw-semibold" htmlFor="meetingMode">
+                Meeting Mode
+              </label>
+            </div>
           </div>
         </div>
       </header>
@@ -347,6 +384,7 @@ function App() {
             onAddMedia={addMedia}
             onDeleteVideo={deleteVideo}
             onDeleteMultipleVideos={deleteMultipleVideos}
+            meetingMode={meetingMode}
           />
         ) : activeTab === 'play' ? (
           <VideoPlayer
